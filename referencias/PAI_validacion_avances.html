@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAI 2026 - Validación de Avances</title>
+  <style>
+    :root {
+      --green-900:#063f34;
+      --green-800:#085041;
+      --green-700:#0F6E56;
+      --green-600:#168765;
+      --green-200:#9FE1CB;
+      --green-100:#E1F5EE;
+      --blue-100:#E6F1FB;
+      --blue-700:#185FA5;
+      --amber-100:#FAEEDA;
+      --amber-700:#854F0B;
+      --red-100:#FDE7E2;
+      --red-700:#B42318;
+      --gray-50:#F7F8FA;
+      --gray-100:#EEF0F3;
+      --gray-200:#E1E4E8;
+      --gray-300:#D0D5DD;
+      --gray-500:#667085;
+      --gray-700:#344054;
+      --gray-900:#101828;
+      --white:#fff;
+      --radius:12px;
+      --shadow:0 12px 28px rgba(16, 24, 40, .08);
+    }
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+    }
+
+    .sp-shell { min-height:100vh; background:var(--gray-50); }
+
+    .sp-topbar {
+      height:48px;
+      background:var(--green-700);
+      display:flex;
+      align-items:center;
+      padding:0 18px;
+      gap:16px;
+    }
+
+    .sp-logo {
+      color:var(--green-100);
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.02em;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .sp-sep {
+      width:1px;
+      height:22px;
+      background:rgba(255,255,255,.25);
+    }
+
+    .sp-site {
+      color:var(--green-100);
+      font-size:13px;
+    }
+
+    .sp-user {
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--green-100);
+      font-size:13px;
+    }
+
+    .avatar {
+      width:30px;
+      height:30px;
+      border-radius:50%;
+      background:var(--green-600);
+      display:grid;
+      place-items:center;
+      font-weight:700;
+      font-size:12px;
+      color:white;
+    }
+
+    .sp-nav {
+      height:40px;
+      background:var(--green-800);
+      display:flex;
+      align-items:center;
+      padding:0 18px;
+      gap:2px;
+    }
+
+    .nav-item {
+      color:var(--green-200);
+      height:40px;
+      padding:0 14px;
+      display:flex;
+      align-items:center;
+      font-size:13px;
+      cursor:pointer;
+      border-bottom:3px solid transparent;
+    }
+
+    .nav-item.active {
+      color:#fff;
+      border-bottom-color:var(--green-200);
+      font-weight:600;
+    }
+
+    .nav-item:hover { color:#fff; }
+
+    .page {
+      max-width:1180px;
+      margin:0 auto;
+      padding:24px 20px 40px;
+    }
+
+    .breadcrumb {
+      color:var(--gray-500);
+      font-size:12px;
+      margin-bottom:14px;
+    }
+
+    .webpart {
+      background:white;
+      border:1px solid var(--gray-200);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .wp-header {
+      background:var(--green-100);
+      border-bottom:1px solid var(--green-200);
+      padding:18px 22px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .header-icon {
+      width:42px;
+      height:42px;
+      background:var(--green-700);
+      color:white;
+      border-radius:10px;
+      display:grid;
+      place-items:center;
+      font-size:21px;
+    }
+
+    .header-text { flex:1; }
+    .header-title {
+      color:var(--green-900);
+      font-size:18px;
+      font-weight:700;
+    }
+    .header-sub {
+      color:var(--green-700);
+      font-size:13px;
+      margin-top:2px;
+    }
+
+    .role-badge {
+      background:var(--green-700);
+      color:white;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+    }
+
+    .body { padding:20px 22px 24px; }
+
+    .metrics {
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:12px;
+      margin-bottom:20px;
+    }
+
+    .metric-card {
+      background:var(--gray-50);
+      border:1px solid var(--gray-200);
+      border-radius:12px;
+      padding:14px;
+    }
+
+    .metric-label {
+      color:var(--gray-500);
+      font-size:12px;
+      margin-bottom:6px;
+    }
+
+    .metric-value {
+      font-size:25px;
+      font-weight:750;
+      color:var(--gray-900);
+    }
+
+    .metric-value.green { color:var(--green-700); }
+    .metric-value.amber { color:var(--amber-700); }
+    .metric-value.red { color:var(--red-700); }
+    .metric-value.blue { color:var(--blue-700); }
+
+    .filters {
+      background:#fff;
+      border:1px solid var(--gray-200);
+      border-radius:12px;
+      padding:14px;
+      margin-bottom:18px;
+    }
+
+    .section-title {
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.07em;
+      text-transform:uppercase;
+      color:var(--gray-500);
+      margin-bottom:12px;
+    }
+
+    .filter-grid {
+      display:grid;
+      grid-template-columns:1.1fr 1.1fr 1fr .8fr 1fr;
+      gap:10px;
+    }
+
+    label {
+      display:block;
+      color:var(--gray-500);
+      font-size:11px;
+      margin-bottom:5px;
+      font-weight:600;
+    }
+
+    select, input, textarea {
+      width:100%;
+      border:1px solid var(--gray-300);
+      border-radius:9px;
+      padding:9px 10px;
+      font-size:13px;
+      font-family:inherit;
+      background:white;
+      color:var(--gray-900);
+      outline:none;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color:var(--green-700);
+      box-shadow:0 0 0 3px rgba(15,110,86,.12);
+    }
+
+    .main-layout {
+      display:grid;
+      grid-template-columns:1.2fr .9fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .panel {
+      border:1px solid var(--gray-200);
+      border-radius:12px;
+      overflow:hidden;
+      background:white;
+    }
+
+    .panel-head {
+      padding:13px 15px;
+      background:var(--gray-50);
+      border-bottom:1px solid var(--gray-200);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .panel-title {
+      font-size:14px;
+      font-weight:700;
+      color:var(--gray-900);
+    }
+
+    .table-wrap { overflow:auto; }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+
+    th {
+      text-align:left;
+      color:var(--gray-500);
+      background:#fff;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      padding:10px 12px;
+      border-bottom:1px solid var(--gray-200);
+      white-space:nowrap;
+    }
+
+    td {
+      padding:12px;
+      border-bottom:1px solid var(--gray-200);
+      vertical-align:top;
+    }
+
+    tr:hover td { background:var(--gray-50); }
+
+    .code {
+      display:inline-flex;
+      padding:3px 8px;
+      border-radius:999px;
+      background:var(--green-100);
+      color:var(--green-900);
+      font-weight:700;
+      font-size:11px;
+      white-space:nowrap;
+    }
+
+    .meta-name {
+      font-weight:600;
+      color:var(--gray-900);
+      margin-bottom:3px;
+    }
+
+    .small {
+      color:var(--gray-500);
+      font-size:11px;
+      line-height:1.35;
+    }
+
+    .status {
+      display:inline-flex;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .status.review { background:var(--blue-100); color:var(--blue-700); }
+    .status.approved { background:var(--green-100); color:var(--green-700); }
+    .status.returned { background:var(--red-100); color:var(--red-700); }
+    .status.pending { background:var(--amber-100); color:var(--amber-700); }
+
+    .progress {
+      min-width:92px;
+    }
+
+    .progress-top {
+      display:flex;
+      justify-content:space-between;
+      font-size:11px;
+      margin-bottom:5px;
+    }
+
+    .bar {
+      height:7px;
+      background:var(--gray-200);
+      border-radius:999px;
+      overflow:hidden;
+    }
+
+    .bar span {
+      display:block;
+      height:100%;
+      border-radius:999px;
+      background:var(--green-700);
+    }
+
+    .evidence-mini {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      color:var(--gray-700);
+      font-size:11px;
+    }
+
+    .btn {
+      border:1px solid var(--gray-300);
+      background:white;
+      color:var(--gray-700);
+      border-radius:9px;
+      padding:8px 11px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .btn:hover { background:var(--gray-50); }
+
+    .btn-primary {
+      background:var(--green-700);
+      color:white;
+      border-color:var(--green-700);
+    }
+
+    .btn-primary:hover { background:var(--green-800); }
+
+    .btn-red {
+      background:white;
+      color:var(--red-700);
+      border-color:#F6B7AC;
+    }
+
+    .btn-amber {
+      background:white;
+      color:var(--amber-700);
+      border-color:#F2C98D;
+    }
+
+    .detail-content { padding:15px; }
+
+    .detail-title-row {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:14px;
+    }
+
+    .detail-title {
+      font-size:15px;
+      font-weight:750;
+      line-height:1.35;
+      color:var(--gray-900);
+    }
+
+    .info-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-bottom:15px;
+    }
+
+    .info-item {
+      background:var(--gray-50);
+      border:1px solid var(--gray-200);
+      border-radius:10px;
+      padding:10px;
+    }
+
+    .info-label {
+      font-size:11px;
+      color:var(--gray-500);
+      margin-bottom:4px;
+      font-weight:700;
+    }
+
+    .info-value {
+      font-size:12px;
+      color:var(--gray-900);
+      font-weight:600;
+    }
+
+    .activity-card {
+      border:1px solid var(--gray-200);
+      border-radius:12px;
+      margin-bottom:12px;
+      overflow:hidden;
+    }
+
+    .activity-head {
+      background:var(--gray-50);
+      padding:10px 12px;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      border-bottom:1px solid var(--gray-200);
+    }
+
+    .activity-title {
+      font-size:13px;
+      font-weight:700;
+      color:var(--gray-900);
+    }
+
+    .weight {
+      background:var(--amber-100);
+      color:var(--amber-700);
+      border-radius:999px;
+      padding:3px 7px;
+      font-size:11px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .activity-body { padding:11px 12px; }
+
+    .text-block {
+      margin-bottom:10px;
+    }
+
+    .text-block .label {
+      color:var(--gray-500);
+      font-size:11px;
+      font-weight:700;
+      margin-bottom:4px;
+    }
+
+    .text-block .value {
+      color:var(--gray-700);
+      font-size:12px;
+      line-height:1.45;
+      background:var(--gray-50);
+      border-radius:8px;
+      padding:9px;
+      border:1px solid var(--gray-200);
+    }
+
+    .evidence-list {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:12px;
+    }
+
+    .file-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--gray-200);
+      border-radius:10px;
+      background:var(--gray-50);
+      font-size:12px;
+    }
+
+    .file-icon {
+      width:28px;
+      height:28px;
+      border-radius:7px;
+      background:var(--green-100);
+      color:var(--green-700);
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      font-size:11px;
+    }
+
+    .file-meta { flex:1; min-width:0; }
+    .file-name { font-weight:700; color:var(--gray-900); }
+    .file-path {
+      color:var(--gray-500);
+      font-size:10.5px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin-top:2px;
+    }
+
+    .history {
+      border:1px solid var(--gray-200);
+      border-radius:12px;
+      overflow:hidden;
+      margin-bottom:14px;
+    }
+
+    .hist-row {
+      display:grid;
+      grid-template-columns:82px 1fr;
+      gap:8px;
+      padding:9px 11px;
+      border-bottom:1px solid var(--gray-200);
+      font-size:12px;
+    }
+
+    .hist-row:last-child { border-bottom:none; }
+    .hist-date {
+      color:var(--gray-500);
+      font-weight:700;
+      font-size:11px;
+    }
+
+    .hist-desc { color:var(--gray-700); line-height:1.35; }
+
+    textarea { min-height:78px; resize:vertical; }
+
+    .actions {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+      padding-top:13px;
+      border-top:1px solid var(--gray-200);
+    }
+
+    .toast {
+      position:fixed;
+      right:22px;
+      bottom:22px;
+      background:var(--green-900);
+      color:white;
+      border-radius:12px;
+      padding:13px 16px;
+      box-shadow:var(--shadow);
+      display:none;
+      font-size:13px;
+      max-width:360px;
+    }
+
+    .toast.show { display:block; }
+
+    @media (max-width: 1000px) {
+      .metrics { grid-template-columns:repeat(2, 1fr); }
+      .filter-grid { grid-template-columns:1fr 1fr; }
+      .main-layout { grid-template-columns:1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .metrics, .filter-grid, .info-grid { grid-template-columns:1fr; }
+      .sp-nav { overflow-x:auto; }
+      .nav-item { white-space:nowrap; }
+      .wp-header { align-items:flex-start; flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sp-shell">
+    <div class="sp-topbar">
+      <div class="sp-logo">▦ Fundación Universitaria María Cano</div>
+      <div class="sp-sep"></div>
+      <div class="sp-site">Portal PAI 2026</div>
+      <div class="sp-user">
+        <span>Diana P. Avendaño</span>
+        <div class="avatar">DA</div>
+      </div>
+    </div>
+
+    <div class="sp-nav">
+      <div class="nav-item">Inicio</div>
+      <div class="nav-item">Gestionar PAI</div>
+      <div class="nav-item">Reporte trimestral</div>
+      <div class="nav-item active">Validación de avances</div>
+      <div class="nav-item">Evidencias</div>
+      <div class="nav-item">Dashboard</div>
+    </div>
+
+    <main class="page">
+      <div class="breadcrumb">Inicio › PAI 2026 › Validación de avances › Trimestre 2</div>
+
+      <section class="webpart">
+        <div class="wp-header">
+          <div class="header-icon">✓</div>
+          <div class="header-text">
+            <div class="header-title">Validación de avances trimestrales — PAI 2026</div>
+            <div class="header-sub">Consulte, revise, apruebe o devuelva los avances reportados por las dependencias institucionales.</div>
+          </div>
+          <div class="role-badge">Rol: Planeación / Calidad</div>
+        </div>
+
+        <div class="body">
+          <div class="metrics">
+            <div class="metric-card">
+              <div class="metric-label">Pendientes por validar</div>
+              <div class="metric-value amber">18</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">En revisión</div>
+              <div class="metric-value blue">7</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Aprobadas</div>
+              <div class="metric-value green">42</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Devueltas</div>
+              <div class="metric-value red">5</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Avance institucional</div>
+              <div class="metric-value green">64%</div>
+            </div>
+          </div>
+
+          <div class="filters">
+            <div class="section-title">Filtros de consulta</div>
+            <div class="filter-grid">
+              <div>
+                <label for="linea">Línea estratégica</label>
+                <select id="linea" onchange="filterRows()">
+                  <option value="Todas">Todas</option>
+                  <option value="L1">L1 Calidad Académica</option>
+                  <option value="L2">L2 Relacionamiento con el Entorno</option>
+                  <option value="L3">L3 Gestión Institucional</option>
+                </select>
+              </div>
+              <div>
+                <label for="dependencia">Dependencia / área</label>
+                <select id="dependencia" onchange="filterRows()">
+                  <option value="Todas">Todas</option>
+                  <option value="Vicerrectoría Académica">Vicerrectoría Académica</option>
+                  <option value="Biblioteca">Biblioteca</option>
+                  <option value="Tecnología">Tecnología</option>
+                  <option value="Investigación">Investigación</option>
+                  <option value="Internacionalización">Internacionalización</option>
+                </select>
+              </div>
+              <div>
+                <label for="responsable">Responsable</label>
+                <select id="responsable" onchange="filterRows()">
+                  <option value="Todos">Todos</option>
+                  <option value="Lina Torres">Lina Torres</option>
+                  <option value="Carlos Ruiz">Carlos Ruiz</option>
+                  <option value="Roger Sistemas">Roger Sistemas</option>
+                  <option value="Marta Gómez">Marta Gómez</option>
+                </select>
+              </div>
+              <div>
+                <label for="trimestre">Trimestre</label>
+                <select id="trimestre">
+                  <option>T2 · 2026</option>
+                  <option>T1 · 2026</option>
+                  <option>T3 · 2026</option>
+                  <option>T4 · 2026</option>
+                </select>
+              </div>
+              <div>
+                <label for="estado">Estado</label>
+                <select id="estado" onchange="filterRows()">
+                  <option value="Todos">Todos</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="En revisión">En revisión</option>
+                  <option value="Aprobado">Aprobado</option>
+                  <option value="Devuelto">Devuelto</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="main-layout">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Reportes recibidos para validación</div>
+                  <div class="small">Seleccione una meta para revisar el detalle, evidencias e historial.</div>
+                </div>
+                <button class="btn" onclick="resetFilters()">Limpiar filtros</button>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Meta / Área</th>
+                      <th>Avance</th>
+                      <th>Evidencias</th>
+                      <th>Estado</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportRows">
+                    <tr data-linea="L1" data-dependencia="Vicerrectoría Académica" data-responsable="Lina Torres" data-estado="En revisión">
+                      <td><span class="code">VA01-M01</span></td>
+                      <td>
+                        <div class="meta-name">Implementación del modelo pedagógico institucional</div>
+                        <div class="small">Vicerrectoría Académica · Lina Torres</div>
+                      </td>
+                      <td>
+                        <div class="progress">
+                          <div class="progress-top"><span>T2</span><strong>75%</strong></div>
+                          <div class="bar"><span style="width:75%"></span></div>
+                        </div>
+                      </td>
+                      <td><div class="evidence-mini">📎 3 archivos<br><span class="small">1 pendiente</span></div></td>
+                      <td><span class="status review">En revisión</span></td>
+                      <td><button class="btn btn-primary" onclick="loadDetail('VA01-M01')">Revisar</button></td>
+                    </tr>
+
+                    <tr data-linea="L1" data-dependencia="Biblioteca" data-responsable="Carlos Ruiz" data-estado="Pendiente">
+                      <td><span class="code">BI02-M04</span></td>
+                      <td>
+                        <div class="meta-name">Fortalecimiento de recursos bibliográficos digitales</div>
+                        <div class="small">Biblioteca · Carlos Ruiz</div>
+                      </td>
+                      <td>
+                        <div class="progress">
+                          <div class="progress-top"><span>T2</span><strong>40%</strong></div>
+                          <div class="bar"><span style="width:40%;background:#BA7517"></span></div>
+                        </div>
+                      </td>
+                      <td><div class="evidence-mini">📎 1 archivo<br><span class="small">2 pendientes</span></div></td>
+                      <td><span class="status pending">Pendiente</span></td>
+                      <td><button class="btn btn-primary" onclick="loadDetail('BI02-M04')">Revisar</button></td>
+                    </tr>
+
+                    <tr data-linea="L3" data-dependencia="Tecnología" data-responsable="Roger Sistemas" data-estado="Aprobado">
+                      <td><span class="code">GTI05-M07</span></td>
+                      <td>
+                        <div class="meta-name">Digitalización y mejora del instrumento PAI</div>
+                        <div class="small">Tecnología · Roger Sistemas</div>
+                      </td>
+                      <td>
+                        <div class="progress">
+                          <div class="progress-top"><span>T2</span><strong>90%</strong></div>
+                          <div class="bar"><span style="width:90%"></span></div>
+                        </div>
+                      </td>
+                      <td><div class="evidence-mini">📎 5 archivos<br><span class="small">Completo</span></div></td>
+                      <td><span class="status approved">Aprobado</span></td>
+                      <td><button class="btn btn-primary" onclick="loadDetail('GTI05-M07')">Revisar</button></td>
+                    </tr>
+
+                    <tr data-linea="L2" data-dependencia="Internacionalización" data-responsable="Marta Gómez" data-estado="Devuelto">
+                      <td><span class="code">INT04-M02</span></td>
+                      <td>
+                        <div class="meta-name">Estrategias de movilidad académica internacional</div>
+                        <div class="small">Internacionalización · Marta Gómez</div>
+                      </td>
+                      <td>
+                        <div class="progress">
+                          <div class="progress-top"><span>T2</span><strong>25%</strong></div>
+                          <div class="bar"><span style="width:25%;background:#B42318"></span></div>
+                        </div>
+                      </td>
+                      <td><div class="evidence-mini">📎 0 archivos<br><span class="small">Faltan soportes</span></div></td>
+                      <td><span class="status returned">Devuelto</span></td>
+                      <td><button class="btn btn-primary" onclick="loadDetail('INT04-M02')">Revisar</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Detalle para validación</div>
+                  <div class="small">Revisión de meta, actividades, evidencias e historial.</div>
+                </div>
+              </div>
+
+              <div class="detail-content">
+                <div class="detail-title-row">
+                  <span class="code" id="detailCode">VA01-M01</span>
+                  <div>
+                    <div class="detail-title" id="detailTitle">Implementación del modelo pedagógico institucional en el 80% de los programas académicos</div>
+                    <div class="small" id="detailSub">Vicerrectoría Académica · Responsable: Lina Torres · Línea L1 Calidad Académica</div>
+                  </div>
+                </div>
+
+                <div class="info-grid">
+                  <div class="info-item">
+                    <div class="info-label">Indicador</div>
+                    <div class="info-value" id="indicator">% programas con modelo implementado</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Estado actual</div>
+                    <div class="info-value" id="detailState">En revisión</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Trimestre reportado</div>
+                    <div class="info-value">T2 · 2026</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Fecha de envío</div>
+                    <div class="info-value" id="sendDate">18 jun 2026</div>
+                  </div>
+                </div>
+
+                <div class="section-title">Actividades reportadas</div>
+
+                <div class="activity-card">
+                  <div class="activity-head">
+                    <div class="activity-title" id="act1Title">Talleres de socialización del modelo pedagógico con docentes</div>
+                    <span class="weight">Peso 30%</span>
+                  </div>
+                  <div class="activity-body">
+                    <div class="progress" style="margin-bottom:10px;">
+                      <div class="progress-top"><span>Avance reportado</span><strong id="act1Pct">75%</strong></div>
+                      <div class="bar"><span id="act1Bar" style="width:75%"></span></div>
+                    </div>
+                    <div class="text-block">
+                      <div class="label">Logros reportados</div>
+                      <div class="value" id="act1Logros">Se realizaron 3 de 4 talleres programados con participación del 89% de docentes convocados.</div>
+                    </div>
+                    <div class="text-block">
+                      <div class="label">Observaciones / dificultades</div>
+                      <div class="value" id="act1Obs">El cuarto taller se reprogramó para julio por incompatibilidad de horarios.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="activity-card">
+                  <div class="activity-head">
+                    <div class="activity-title" id="act2Title">Monitoreo de FOE con instrumentos actualizados</div>
+                    <span class="weight">Peso 70%</span>
+                  </div>
+                  <div class="activity-body">
+                    <div class="progress" style="margin-bottom:10px;">
+                      <div class="progress-top"><span>Avance reportado</span><strong id="act2Pct">30%</strong></div>
+                      <div class="bar"><span id="act2Bar" style="width:30%;background:#BA7517"></span></div>
+                    </div>
+                    <div class="text-block">
+                      <div class="label">Logros reportados</div>
+                      <div class="value" id="act2Logros">Se inició la revisión del instrumento y se consolidaron observaciones de dos programas académicos.</div>
+                    </div>
+                    <div class="text-block">
+                      <div class="label">Observaciones / dificultades</div>
+                      <div class="value" id="act2Obs">Faltan evidencias de aplicación del instrumento en algunos programas.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section-title">Evidencias asociadas</div>
+                <div class="evidence-list" id="evidenceList">
+                  <div class="file-row">
+                    <div class="file-icon">PDF</div>
+                    <div class="file-meta">
+                      <div class="file-name">Acta_Taller_Jun2026.pdf</div>
+                      <div class="file-path">PAI Evidencias › L1 › VA01 › 2026-T2 › VA01-M01</div>
+                    </div>
+                    <button class="btn">Ver</button>
+                  </div>
+                  <div class="file-row">
+                    <div class="file-icon">XLS</div>
+                    <div class="file-meta">
+                      <div class="file-name">Asistencia_Docentes_T2.xlsx</div>
+                      <div class="file-path">PAI Evidencias › L1 › VA01 › 2026-T2 › VA01-M01</div>
+                    </div>
+                    <button class="btn">Ver</button>
+                  </div>
+                </div>
+
+                <div class="section-title">Historial de auditoría</div>
+                <div class="history" id="historyList">
+                  <div class="hist-row">
+                    <div class="hist-date">15 jun</div>
+                    <div class="hist-desc"><strong>Lina Torres</strong> guardó borrador del reporte trimestral.</div>
+                  </div>
+                  <div class="hist-row">
+                    <div class="hist-date">18 jun</div>
+                    <div class="hist-desc"><strong>Lina Torres</strong> envió reporte para validación.</div>
+                  </div>
+                  <div class="hist-row">
+                    <div class="hist-date">19 jun</div>
+                    <div class="hist-desc"><strong>Planeación</strong> inició revisión de evidencias.</div>
+                  </div>
+                </div>
+
+                <div class="section-title">Observación de validación</div>
+                <textarea id="validationObs" placeholder="Escriba observaciones para aprobar, devolver o solicitar ajuste del reporte..."></textarea>
+
+                <div class="actions">
+                  <button class="btn btn-primary" onclick="validateAction('aprobado')">✓ Aprobar avance</button>
+                  <button class="btn btn-amber" onclick="validateAction('ajuste')">⚠ Solicitar ajuste</button>
+                  <button class="btn btn-red" onclick="validateAction('devuelto')">↩ Devolver reporte</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script>
+    const data = {
+      "VA01-M01": {
+        title: "Implementación del modelo pedagógico institucional en el 80% de los programas académicos",
+        sub: "Vicerrectoría Académica · Responsable: Lina Torres · Línea L1 Calidad Académica",
+        indicator: "% programas con modelo implementado",
+        state: "En revisión",
+        sendDate: "18 jun 2026",
+        act1Title: "Talleres de socialización del modelo pedagógico con docentes",
+        act1Pct: "75%",
+        act1Width: "75%",
+        act1Logros: "Se realizaron 3 de 4 talleres programados con participación del 89% de docentes convocados.",
+        act1Obs: "El cuarto taller se reprogramó para julio por incompatibilidad de horarios.",
+        act2Title: "Monitoreo de FOE con instrumentos actualizados",
+        act2Pct: "30%",
+        act2Width: "30%",
+        act2Logros: "Se inició la revisión del instrumento y se consolidaron observaciones de dos programas académicos.",
+        act2Obs: "Faltan evidencias de aplicación del instrumento en algunos programas.",
+        evidence: [
+          ["PDF", "Acta_Taller_Jun2026.pdf", "PAI Evidencias › L1 › VA01 › 2026-T2 › VA01-M01"],
+          ["XLS", "Asistencia_Docentes_T2.xlsx", "PAI Evidencias › L1 › VA01 › 2026-T2 › VA01-M01"]
+        ],
+        history: [
+          ["15 jun", "<strong>Lina Torres</strong> guardó borrador del reporte trimestral."],
+          ["18 jun", "<strong>Lina Torres</strong> envió reporte para validación."],
+          ["19 jun", "<strong>Planeación</strong> inició revisión de evidencias."]
+        ]
+      },
+      "BI02-M04": {
+        title: "Fortalecimiento de recursos bibliográficos digitales",
+        sub: "Biblioteca · Responsable: Carlos Ruiz · Línea L1 Calidad Académica",
+        indicator: "Número de recursos digitales actualizados",
+        state: "Pendiente",
+        sendDate: "20 jun 2026",
+        act1Title: "Actualización de bases de datos académicas",
+        act1Pct: "40%",
+        act1Width: "40%",
+        act1Logros: "Se actualizó una base de datos y se inició negociación con proveedor bibliográfico.",
+        act1Obs: "Pendiente certificado de renovación del proveedor.",
+        act2Title: "Socialización de recursos digitales con programas",
+        act2Pct: "20%",
+        act2Width: "20%",
+        act2Logros: "Se diseñó cronograma de socialización.",
+        act2Obs: "No se evidencian soportes de asistencia.",
+        evidence: [
+          ["PDF", "Cotizacion_BaseDatos.pdf", "PAI Evidencias › L1 › Biblioteca › 2026-T2 › BI02-M04"]
+        ],
+        history: [
+          ["20 jun", "<strong>Carlos Ruiz</strong> envió reporte parcial."],
+          ["21 jun", "<strong>Sistema</strong> marcó evidencias incompletas."]
+        ]
+      },
+      "GTI05-M07": {
+        title: "Digitalización y mejora del instrumento PAI",
+        sub: "Tecnología · Responsable: Roger Sistemas · Línea L3 Gestión Institucional",
+        indicator: "% de avance de digitalización del instrumento",
+        state: "Aprobado",
+        sendDate: "17 jun 2026",
+        act1Title: "Diseño de mockup funcional del WebPart PAI",
+        act1Pct: "100%",
+        act1Width: "100%",
+        act1Logros: "Se elaboró prototipo HTML con módulos de gestión, reporte, evidencias y dashboard.",
+        act1Obs: "Pendiente validación final de Planeación para iniciar desarrollo SPFx.",
+        act2Title: "Definición de listas y bibliotecas SharePoint",
+        act2Pct: "80%",
+        act2Width: "80%",
+        act2Logros: "Se definieron listas de metas, actividades, reportes, usuarios y evidencias.",
+        act2Obs: "Se requiere confirmar campos definitivos del PAI 2026.",
+        evidence: [
+          ["HTML", "spfx_webpart_pai_ciclo_completo.html", "PAI Evidencias › L3 › GTI05 › 2026-T2 › GTI05-M07"],
+          ["DOC", "Propuesta_PAI_Digital_WebPart.docx", "PAI Evidencias › L3 › GTI05 › 2026-T2 › GTI05-M07"],
+          ["PDF", "Arquitectura_SPFX_PAI.pdf", "PAI Evidencias › L3 › GTI05 › 2026-T2 › GTI05-M07"]
+        ],
+        history: [
+          ["12 jun", "<strong>Roger Sistemas</strong> registró avance del proyecto."],
+          ["17 jun", "<strong>Planeación</strong> aprobó avance y evidencias."],
+          ["18 jun", "<strong>Sistema</strong> actualizó dashboard institucional."]
+        ]
+      },
+      "INT04-M02": {
+        title: "Estrategias de movilidad académica internacional",
+        sub: "Internacionalización · Responsable: Marta Gómez · Línea L2 Relacionamiento con el Entorno",
+        indicator: "Número de estrategias ejecutadas",
+        state: "Devuelto",
+        sendDate: "16 jun 2026",
+        act1Title: "Convocatoria de movilidad académica saliente",
+        act1Pct: "25%",
+        act1Width: "25%",
+        act1Logros: "Se publicó convocatoria preliminar en canales internos.",
+        act1Obs: "No se adjuntaron evidencias de publicación ni listado de interesados.",
+        act2Title: "Articulación con aliados internacionales",
+        act2Pct: "10%",
+        act2Width: "10%",
+        act2Logros: "Se realizó contacto inicial con dos instituciones aliadas.",
+        act2Obs: "Faltan actas o correos de soporte.",
+        evidence: [],
+        history: [
+          ["16 jun", "<strong>Marta Gómez</strong> envió reporte sin evidencias."],
+          ["18 jun", "<strong>Planeación</strong> devolvió reporte por falta de soportes."]
+        ]
+      }
+    };
+
+    function loadDetail(code) {
+      const d = data[code];
+      document.getElementById("detailCode").textContent = code;
+      document.getElementById("detailTitle").textContent = d.title;
+      document.getElementById("detailSub").textContent = d.sub;
+      document.getElementById("indicator").textContent = d.indicator;
+      document.getElementById("detailState").textContent = d.state;
+      document.getElementById("sendDate").textContent = d.sendDate;
+      document.getElementById("act1Title").textContent = d.act1Title;
+      document.getElementById("act1Pct").textContent = d.act1Pct;
+      document.getElementById("act1Bar").style.width = d.act1Width;
+      document.getElementById("act1Logros").textContent = d.act1Logros;
+      document.getElementById("act1Obs").textContent = d.act1Obs;
+      document.getElementById("act2Title").textContent = d.act2Title;
+      document.getElementById("act2Pct").textContent = d.act2Pct;
+      document.getElementById("act2Bar").style.width = d.act2Width;
+      document.getElementById("act2Logros").textContent = d.act2Logros;
+      document.getElementById("act2Obs").textContent = d.act2Obs;
+      document.getElementById("validationObs").value = "";
+
+      const evidenceList = document.getElementById("evidenceList");
+      evidenceList.innerHTML = "";
+      if (d.evidence.length === 0) {
+        evidenceList.innerHTML = '<div class="file-row"><div class="file-icon">!</div><div class="file-meta"><div class="file-name">Sin evidencias cargadas</div><div class="file-path">Se recomienda devolver o solicitar ajuste al responsable.</div></div></div>';
+      } else {
+        d.evidence.forEach(file => {
+          evidenceList.innerHTML += `
+            <div class="file-row">
+              <div class="file-icon">${file[0]}</div>
+              <div class="file-meta">
+                <div class="file-name">${file[1]}</div>
+                <div class="file-path">${file[2]}</div>
+              </div>
+              <button class="btn">Ver</button>
+            </div>
+          `;
+        });
+      }
+
+      const historyList = document.getElementById("historyList");
+      historyList.innerHTML = "";
+      d.history.forEach(item => {
+        historyList.innerHTML += `
+          <div class="hist-row">
+            <div class="hist-date">${item[0]}</div>
+            <div class="hist-desc">${item[1]}</div>
+          </div>
+        `;
+      });
+    }
+
+    function filterRows() {
+      const linea = document.getElementById("linea").value;
+      const dependencia = document.getElementById("dependencia").value;
+      const responsable = document.getElementById("responsable").value;
+      const estado = document.getElementById("estado").value;
+
+      document.querySelectorAll("#reportRows tr").forEach(row => {
+        const okLinea = linea === "Todas" || row.dataset.linea === linea;
+        const okDep = dependencia === "Todas" || row.dataset.dependencia === dependencia;
+        const okResp = responsable === "Todos" || row.dataset.responsable === responsable;
+        const okEstado = estado === "Todos" || row.dataset.estado === estado;
+        row.style.display = okLinea && okDep && okResp && okEstado ? "" : "none";
+      });
+    }
+
+    function resetFilters() {
+      document.getElementById("linea").value = "Todas";
+      document.getElementById("dependencia").value = "Todas";
+      document.getElementById("responsable").value = "Todos";
+      document.getElementById("estado").value = "Todos";
+      filterRows();
+    }
+
+    function validateAction(action) {
+      const obs = document.getElementById("validationObs").value.trim();
+      const code = document.getElementById("detailCode").textContent;
+      let msg = "";
+      if (action === "aprobado") msg = `El avance de ${code} fue marcado como APROBADO.`;
+      if (action === "ajuste") msg = `Se solicitó AJUSTE al reporte ${code}.`;
+      if (action === "devuelto") msg = `El reporte ${code} fue DEVUELTO al responsable.`;
+      if (!obs && action !== "aprobado") {
+        msg += " Recomendación: incluir observación obligatoria en producción.";
+      }
+      showToast(msg);
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3500);
+    }
+  </script>
+</body>
+</html>
