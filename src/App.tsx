@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from './auth/msalConfig';
+import LoginPage from './components/LoginPage';
+import AuthLoading from './components/AuthLoading';
 import { LayoutDashboard, ClipboardList, FileCheck2, FolderOpen, ChartNoAxesCombined, Settings2, PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, CalendarDays, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -20,36 +22,49 @@ const steps = [
   {name:'Validación con Planeación',state:'En espera',icon:Clock3},
   {name:'Integración institucional',state:'Por iniciar',icon:Layers3},
 ];
-function App(){
+function App({ initialAuthError = null }: { initialAuthError?: string | null }){
   const { instance, accounts, inProgress } = useMsal();
+  const [authError, setAuthError] = useState<string | null>(initialAuthError);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const redirectPending = useRef(false);
 
   const account = instance.getActiveAccount() ?? accounts[0] ?? null;
 
   const isAuthenticated = account !== null;
 
   const isAuthenticating =
-    inProgress !== InteractionStatus.None;
+    inProgress !== InteractionStatus.None || isRedirecting;
 
   const handleLogin = async () => {
-    if (isAuthenticating) return;
+    if (isAuthenticating || redirectPending.current) return;
+    redirectPending.current = true;
+    setAuthError(null);
+    setIsRedirecting(true);
 
     try {
       await instance.loginRedirect(loginRequest);
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
+    } catch {
+      redirectPending.current = false;
+      setIsRedirecting(false);
+      setAuthError('No fue posible iniciar sesión con Microsoft 365. Inténtalo de nuevo. Si el problema continúa, contacta al soporte institucional.');
     }
   };
 
   const handleLogout = async () => {
-    if (isAuthenticating) return;
+    if (isAuthenticating || redirectPending.current) return;
+    redirectPending.current = true;
+    setAuthError(null);
+    setIsRedirecting(true);
 
     try {
       await instance.logoutRedirect({
         account: account ?? undefined,
         postLogoutRedirectUri: window.location.origin + '/',
       });
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+    } catch {
+      redirectPending.current = false;
+      setIsRedirecting(false);
+      setAuthError('No fue posible completar el cierre de sesión. Inténtalo de nuevo.');
     }
   };
 
@@ -62,6 +77,12 @@ function App(){
   const CurrentIcon=current.icon;
   const navigate=(name:string)=>{setActive(name);setMobileOpen(false);setShowSearch(false);window.scrollTo({top:0,behavior:'smooth'});};
   const matches=sections.filter(s=>s.name.toLowerCase().includes(search.toLowerCase()));
+  if (isAuthenticating) {
+    return <AuthLoading />;
+  }
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} isAuthenticating={isAuthenticating} error={authError} />;
+  }
   return <div className={`app-shell ${collapsed?'is-collapsed':''}`}>
     <aside className={`sidebar ${mobileOpen?'mobile-open':''}`} aria-label="Navegación principal">
       <div className="brand"><div className="brand-symbol">MC</div><div className="brand-copy"><strong>María Cano</strong><span>Portal institucional</span></div><button className="collapse-button" title={collapsed?'Expandir menú':'Contraer menú'} onClick={()=>setCollapsed(!collapsed)}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button><button className="mobile-close" onClick={()=>setMobileOpen(false)} aria-label="Cerrar menú"><X size={20}/></button></div>
@@ -108,6 +129,7 @@ function App(){
     </div></header>
     {showSearch&&<div className="search-popover"><label htmlFor="module-search">Buscar módulo</label><input id="module-search" autoFocus value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ej. Evidencias, Dashboard..."/>{matches.map(s=><button key={s.name} onClick={()=>navigate(s.name)}><s.icon size={16}/>{s.name}<ArrowRight size={14}/></button>)}{matches.length===0&&<p>No se encontraron módulos.</p>}</div>}
     <main className="content">
+      {authError && <p className="auth-error" role="alert">{authError}</p>}
       <div className="page-intro"><div><div className="eyebrow"><span className="eyebrow-line"/>{current.eyebrow}</div><h1>{active==='Inicio'?'Plan de Acción Institucional':active}</h1><p>{current.description}</p></div><div className="intro-meta"><CalendarDays size={16}/><span>Vigencia 2026</span></div></div>
       {active==='Inicio'?<>
         <section className="hero"><div className="hero-content"><span className="hero-kicker"><Sparkles size={15}/> TRANSFORMACIÓN DIGITAL</span><h2>Una nueva forma de planear, hacer seguimiento y avanzar.</h2><p>Estamos construyendo un espacio centralizado para gestionar el Plan de Acción Institucional, con información organizada y procesos más claros.</p><button className="hero-cta" onClick={()=>navigate('Gestionar PAI')}>Explorar módulos <ArrowUpRight size={17}/></button></div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orbit orbit-three"/><div className="hero-art-card"><Layers3 size={32}/><span>PAI</span><small>2026</small></div></div></section>
