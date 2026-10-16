@@ -6,15 +6,10 @@ import LoginPage from './components/LoginPage';
 import AuthLoading from './components/AuthLoading';
 import PageIntro from './components/shared/PageIntro';
 import PageFooter from './components/layout/PageFooter';
-import { PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
+import InicioPage from './features/inicio/InicioPage';
+import { PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Building2 } from 'lucide-react';
 import { sections } from './app/navigation';
 
-const steps = [
-  {name:'Estructura del proyecto',state:'Completado',icon:CheckCircle2},
-  {name:'Análisis del PAI 2026',state:'Realizado inicialmente',icon:CheckCircle2},
-  {name:'Validación con Planeación',state:'En espera',icon:Clock3},
-  {name:'Integración institucional',state:'Por iniciar',icon:Layers3},
-];
 function App({ initialAuthError = null }: { initialAuthError?: string | null }){
   const { instance, accounts, inProgress } = useMsal();
   const [authError, setAuthError] = useState<string | null>(initialAuthError);
@@ -124,12 +119,7 @@ function App({ initialAuthError = null }: { initialAuthError?: string | null }){
     <main className="content">
       {authError && <p className="auth-error" role="alert">{authError}</p>}
       <PageIntro active={active} current={current} />
-      {active==='Inicio'?<>
-        <section className="hero"><div className="hero-content"><span className="hero-kicker"><Sparkles size={15}/> TRANSFORMACIÓN DIGITAL</span><h2>Una nueva forma de planear, hacer seguimiento y avanzar.</h2><p>Estamos construyendo un espacio centralizado para gestionar el Plan de Acción Institucional, con información organizada y procesos más claros.</p><button className="hero-cta" onClick={()=>navigate('Gestionar PAI')}>Explorar módulos <ArrowUpRight size={17}/></button></div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orbit orbit-three"/><div className="hero-art-card"><Layers3 size={32}/><span>PAI</span><small>2026</small></div></div></section>
-        <div className="section-head"><div><span className="overline">EXPLORA EL PORTAL</span><h2>Módulos de trabajo</h2><p>Accede a las funciones previstas para cada etapa del proceso.</p></div></div>
-        <div className="module-grid">{sections.filter(s=>s.name!=='Inicio').map((s,i)=><button className="module-card" key={s.name} onClick={()=>navigate(s.name)}><span className={`module-icon shade-${i}`}><s.icon size={22}/></span><span className="module-arrow"><ArrowUpRight size={19}/></span><strong>{s.name}</strong><span className="module-desc">{s.description}</span><span className="module-link">Explorar módulo <ArrowRight size={15}/></span></button>)}</div>
-        <div className="lower-grid"><section className="surface project-status"><div className="surface-heading"><div><span className="overline">HOJA DE RUTA</span><h2>Estado del proyecto</h2></div><span className="small-pill">Fase inicial</span></div><div className="step-list">{steps.map((s,i)=><div className="step" key={s.name}><span className={`step-icon ${i<2?'done':''}`}><s.icon size={17}/></span><div><strong>{s.name}</strong><span>{s.state}</span></div></div>)}</div></section><section className="surface info-surface"><span className="info-icon"><Info size={22}/></span><span className="overline">IMPORTANTE</span><h2>Construcción por etapas</h2><p>Esta versión presenta la estructura visual y la navegación. La autenticación institucional, el almacenamiento de información, los permisos y los flujos de aprobación aún no están implementados.</p><div className="info-divider"/><div className="info-note"><Clock3 size={17}/><span>En espera de la validación de requisitos por parte de Planeación.</span></div></section></div>
-      </>:<>
+      {active==='Inicio'?<InicioPage sections={sections} navigate={navigate} />:<>
         <section className="module-hero"><div className="module-hero-icon"><CurrentIcon size={27}/></div><div><span className="overline">MÓDULO DEL PORTAL</span><h2>{active}</h2><p>{current.description}</p></div><span className="module-state">Diseño inicial</span></section>
         <div className="module-content-grid"><section className="surface main-module"><div className="surface-heading"><div><span className="overline">VISTA GENERAL</span><h2>Espacio de trabajo</h2></div><span className="small-pill">Próximamente</span></div><div className="placeholder-illustration"><div className="placeholder-icon"><CurrentIcon size={36}/></div><h3>Preparando el módulo de {active.toLowerCase()}</h3><p>La navegación y el diseño están disponibles. Las funciones operativas se incorporarán después de validar los requisitos del proceso y las reglas de negocio.</p><div className="placeholder-features"><span><CheckCircle2 size={16}/> Estructura visual</span><span><Clock3 size={16}/> Funcionalidad pendiente</span></div></div></section><aside className="surface context-panel"><span className="overline">CONTEXTO DEL MÓDULO</span><h2>¿Qué permitirá hacer?</h2><p>{current.description}</p><div className="context-row"><FileSpreadsheet size={18}/><span>Basado en el proceso actual del PAI 2026.</span></div><div className="context-row"><Building2 size={18}/><span>Requisitos sujetos a revisión por Planeación.</span></div><div className="context-row"><ShieldCheck size={18}/><span>Acceso y permisos por definir e implementar.</span></div><button className="back-link" onClick={()=>navigate('Inicio')}>Volver al inicio <ArrowRight size={16}/></button></aside></div>
         <div className="section-head related"><div><span className="overline">CONTINÚA EXPLORANDO</span><h2>Otros módulos</h2></div></div><div className="related-grid">{sections.filter(s=>s.name!==active).slice(0,3).map(s=><button key={s.name} onClick={()=>navigate(s.name)}><s.icon size={19}/><span>{s.name}</span><ArrowUpRight size={16}/></button>)}</div>
