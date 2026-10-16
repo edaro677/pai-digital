@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useMsal } from '@azure/msal-react';
+import { InteractionStatus } from '@azure/msal-browser';
+import { loginRequest } from './auth/msalConfig';
 import { LayoutDashboard, ClipboardList, FileCheck2, FolderOpen, ChartNoAxesCombined, Settings2, PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, CalendarDays, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -18,6 +21,38 @@ const steps = [
   {name:'Integración institucional',state:'Por iniciar',icon:Layers3},
 ];
 function App(){
+  const { instance, accounts, inProgress } = useMsal();
+
+  const account = instance.getActiveAccount() ?? accounts[0] ?? null;
+
+  const isAuthenticated = account !== null;
+
+  const isAuthenticating =
+    inProgress !== InteractionStatus.None;
+
+  const handleLogin = async () => {
+    if (isAuthenticating) return;
+
+    try {
+      await instance.loginRedirect(loginRequest);
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isAuthenticating) return;
+
+    try {
+      await instance.logoutRedirect({
+        account: account ?? undefined,
+        postLogoutRedirectUri: window.location.origin + '/',
+      });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
+
   const [active,setActive]=useState('Inicio');
   const [collapsed,setCollapsed]=useState(false);
   const [mobileOpen,setMobileOpen]=useState(false);
@@ -36,7 +71,41 @@ function App(){
       <div className="sidebar-bottom"><div className="sidebar-info"><ShieldCheck size={18}/><div><strong>Entorno de desarrollo</strong><span>Sin conexión a datos reales</span></div></div><div className="sidebar-footer">Fundación Universitaria María Cano</div></div>
     </aside>
     {mobileOpen&&<button className="mobile-backdrop" aria-label="Cerrar navegación" onClick={()=>setMobileOpen(false)}/>}
-    <div className="main-area"><header className="topbar"><div className="top-left"><button className="mobile-menu icon-button" onClick={()=>setMobileOpen(true)} aria-label="Abrir menú"><Menu size={21}/></button><span className="top-location">PAI Digital</span><ChevronRight size={15}/><strong>{active}</strong></div><div className="top-actions"><button className="icon-button search-trigger" aria-label="Buscar módulo" title="Buscar módulo" onClick={()=>setShowSearch(!showSearch)}><Search size={20}/></button><span className="top-divider"/><div className="environment-tag"><span/> Desarrollo</div><div className="avatar" title="Vista de demostración">F</div></div></header>
+    <div className="main-area"><header className="topbar"><div className="top-left"><button className="mobile-menu icon-button" onClick={()=>setMobileOpen(true)} aria-label="Abrir menú"><Menu size={21}/></button><span className="top-location">PAI Digital</span><ChevronRight size={15}/><strong>{active}</strong></div><div className="top-actions"><button className="icon-button search-trigger" aria-label="Buscar módulo" title="Buscar módulo" onClick={()=>setShowSearch(!showSearch)}><Search size={20}/></button><span className="top-divider"/><div className="environment-tag"><span/> Desarrollo</div>
+{isAuthenticated && account ? (
+  <div className="auth-user">
+    <div
+      className="avatar"
+      title={account.username}
+    >
+      {(account.name || account.username)
+        .charAt(0)
+        .toUpperCase()}
+    </div>
+
+    <button
+      type="button"
+      className="auth-button"
+      onClick={handleLogout}
+      disabled={isAuthenticating}
+      title={`Cerrar sesión de ${account.username}`}
+    >
+      Cerrar sesión
+    </button>
+  </div>
+) : (
+  <button
+    type="button"
+    className="auth-button"
+    onClick={handleLogin}
+    disabled={isAuthenticating}
+  >
+    {isAuthenticating
+      ? 'Procesando...'
+      : 'Iniciar sesión'}
+  </button>
+)}
+    </div></header>
     {showSearch&&<div className="search-popover"><label htmlFor="module-search">Buscar módulo</label><input id="module-search" autoFocus value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ej. Evidencias, Dashboard..."/>{matches.map(s=><button key={s.name} onClick={()=>navigate(s.name)}><s.icon size={16}/>{s.name}<ArrowRight size={14}/></button>)}{matches.length===0&&<p>No se encontraron módulos.</p>}</div>}
     <main className="content">
       <div className="page-intro"><div><div className="eyebrow"><span className="eyebrow-line"/>{current.eyebrow}</div><h1>{active==='Inicio'?'Plan de Acción Institucional':active}</h1><p>{current.description}</p></div><div className="intro-meta"><CalendarDays size={16}/><span>Vigencia 2026</span></div></div>
