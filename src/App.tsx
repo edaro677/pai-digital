@@ -4,18 +4,9 @@ import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from './auth/msalConfig';
 import LoginPage from './components/LoginPage';
 import AuthLoading from './components/AuthLoading';
-import { LayoutDashboard, ClipboardList, FileCheck2, FolderOpen, ChartNoAxesCombined, Settings2, PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, CalendarDays, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, CalendarDays, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
+import { sections } from './app/navigation';
 
-type Section = {name:string; icon:LucideIcon; description:string; eyebrow:string};
-const sections: Section[] = [
-  {name:'Inicio',icon:LayoutDashboard,eyebrow:'Vista general',description:'Una visión clara del Plan de Acción Institucional y de los procesos disponibles.'},
-  {name:'Gestionar PAI',icon:Settings2,eyebrow:'Planeación estratégica',description:'Estructura institucional de líneas estratégicas, metas, actividades e indicadores.'},
-  {name:'Reporte trimestral',icon:ClipboardList,eyebrow:'Seguimiento periódico',description:'Registro de avances, logros, dificultades y resultados por trimestre.'},
-  {name:'Validación de avances',icon:FileCheck2,eyebrow:'Control y seguimiento',description:'Revisión de los reportes trimestrales y gestión de observaciones.'},
-  {name:'Evidencias',icon:FolderOpen,eyebrow:'Gestión documental',description:'Consulta y organización de los soportes asociados al cumplimiento del PAI.'},
-  {name:'Dashboard',icon:ChartNoAxesCombined,eyebrow:'Analítica institucional',description:'Indicadores, comparativos y seguimiento por dependencia y periodo.'},
-];
 const steps = [
   {name:'Estructura del proyecto',state:'Completado',icon:CheckCircle2},
   {name:'Análisis del PAI 2026',state:'Realizado inicialmente',icon:CheckCircle2},
