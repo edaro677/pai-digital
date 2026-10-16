@@ -1,0 +1,348 @@
+PAI DIGITAL — FASE F1
+DIAGNÓSTICO PREVIO A LA MODULARIZACIÓN
+
+Fundación Universitaria María Cano
+Fecha: 16 de octubre de 2026
+Repositorio: D:\PAI\pai-digital-react
+Rama: feature/modularizacion-frontend-pai
+Referencia inspeccionada durante el diagnóstico: 64a4a5f
+
+Este archivo recoge el diagnóstico y la propuesta presentados en la conversación.
+No constituye la ejecución de la refactorización ni su aprobación.
+
+El diagnóstico confirma que F1 puede realizarse mediante extracción gradual de
+componentes, conservando MSAL, los estados actuales y la estructura HTML.
+
+Durante el diagnóstico no se modificaron archivos fuente ni documentación.
+La compilación de referencia pasó y el árbol de trabajo permaneció limpio.
+Posteriormente se creó únicamente este archivo de texto a solicitud del usuario.
+
+
+A. DIAGNÓSTICO ACTUAL
+====================
+
+1. Estructura relevante
+
+src/
+├── App.tsx
+├── main.tsx
+├── styles.css
+├── vite-env.d.ts
+├── auth/
+│   └── msalConfig.ts
+└── components/
+    ├── LoginPage.tsx
+    └── AuthLoading.tsx
+
+docs/
+├── arquitectura-actual-pai.md
+├── 02-requisitos/
+├── 03-arquitectura/
+└── 04-diseno/
+
+referencias/
+├── PAI_ciclo_completo.html
+└── PAI_validacion_avances.html
+
+En la raíz están package.json, package-lock.json, vite.config.ts,
+tsconfig.json e index.html.
+
+2. Responsabilidades concentradas en App.tsx
+
+- Autenticación: useMsal, selección de cuenta, progreso, inicio/cierre de sesión
+  y errores.
+- Protección de acceso: alternancia entre espera, login y portal.
+- Catálogo de módulos: arreglo sections con nombres, iconos y descripciones.
+- Navegación: estado active y función navigate().
+- Menú: colapso de escritorio, apertura móvil y fondo de cierre.
+- Búsqueda: texto, visibilidad y filtrado de módulos.
+- Layout: barra lateral, encabezado, contenido y pie.
+- Inicio: portada, tarjetas, hoja de ruta y panel informativo.
+- Otros cinco módulos: una misma plantilla parametrizada.
+
+3. Componentes reutilizables existentes
+
+- LoginPage: presentación del acceso, controlada mediante propiedades.
+- AuthLoading: espera y error de inicialización.
+
+La barra lateral, el encabezado, las tarjetas y los paneles todavía son
+fragmentos dentro de App; requieren extracción antes de poder reutilizarse
+como componentes.
+
+4. Dependencias entre módulos
+
+Los módulos no tienen dependencias funcionales entre sí. Comparten catálogo,
+navegación, estilos y plantilla visual. Actualmente tampoco existen servicios
+de datos, formularios operativos, cálculos institucionales ni permisos
+funcionales.
+
+5. Contraste entre documentación y código
+
+La documentación coincide con esta base técnica, pero contiene fotografías
+anteriores del repositorio. Por ejemplo, el inventario muestra carpetas
+documentales antes vacías que ahora contienen PAI-002 a PAI-008.
+
+El portal conserva textos que describen la autenticación como pendiente,
+aunque ya está implementada. F1 debe conservar esos textos, porque corregir
+contenido ampliaría el alcance acordado.
+
+6. Riesgos técnicos
+
+a) Reinicio de estados al extraer componentes.
+   Si los estados pasan a un hijo que se desmonta durante una interacción MSAL,
+   podría perderse el módulo seleccionado o la búsqueda.
+
+b) Dependencia del CSS respecto del HTML.
+   Selectores como .module-hero>div:nth-child(2) y
+   .nav-item>span:nth-child(2) pueden romperse al añadir contenedores.
+
+c) Navegación basada en etiquetas.
+   Cambiar nombres, orden o filtros puede alterar selección, tarjetas
+   relacionadas y colores.
+
+d) Extracción de controles de sesión.
+   Duplicar useMsal o mover manejadores podría cambiar el flujo existente.
+
+e) Ausencia de pruebas automatizadas configuradas.
+   La compilación debe complementarse con comprobaciones de navegador.
+
+f) Abstracción prematura.
+   Crear servicios, permisos o modelos institucionales completos anticiparía
+   decisiones pendientes.
+
+
+B. ARQUITECTURA PROPUESTA
+========================
+
+1. Estructura recomendada para F1
+
+src/
+├── main.tsx                             # Sin cambios
+├── App.tsx                              # Autenticación, estados y composición
+├── styles.css                           # Sin cambios
+├── vite-env.d.ts                        # Sin cambios
+├── auth/
+│   └── msalConfig.ts                    # Sin cambios
+├── app/
+│   ├── navigation.ts                    # Catálogo actual de módulos
+│   └── ModuleContent.tsx                # Selección de la vista activa
+├── types/
+│   └── navigation.ts                    # Tipos de módulos y navegación
+├── components/
+│   ├── LoginPage.tsx                    # Conservar
+│   ├── AuthLoading.tsx                  # Conservar
+│   ├── layout/
+│   │   ├── AppLayout.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── Topbar.tsx
+│   │   ├── ModuleSearch.tsx
+│   │   └── PageFooter.tsx
+│   └── shared/
+│       ├── PageIntro.tsx
+│       └── ModulePlaceholder.tsx
+└── features/
+    ├── inicio/
+    │   ├── InicioPage.tsx
+    │   └── inicio.data.ts
+    ├── gestionar-pai/
+    │   └── GestionarPaiPage.tsx
+    ├── reporte-trimestral/
+    │   └── ReporteTrimestralPage.tsx
+    ├── validacion-avances/
+    │   └── ValidacionAvancesPage.tsx
+    ├── evidencias/
+    │   └── EvidenciasPage.tsx
+    └── dashboard/
+        └── DashboardPage.tsx
+
+2. Decisiones principales
+
+a) Conservar autenticación y estados en App.
+   Los componentes extraídos reciben valores y callbacks. Esto mantiene su
+   ciclo de vida actual y evita introducir contextos o hooks adicionales
+   durante F1.
+
+b) Mantener una página por módulo.
+   Inicialmente, las cinco páginas de demostración reutilizarían
+   ModulePlaceholder. Más adelante podrá desarrollarse cada una
+   independientemente.
+
+c) Preservar el HTML resultante.
+   La extracción utilizará los mismos elementos, clases, orden y atributos,
+   sin contenedores adicionales.
+
+d) Conservar navegación por estado.
+   No incorporar router, rutas nuevas, persistencia de selección ni carga
+   diferida.
+
+e) Separar tipos de presentación y datos estáticos.
+   Se trasladarán los contenidos existentes sin cambiar nombres, textos,
+   orden, iconos o estados.
+
+f) Reservar los servicios para una fase posterior.
+   Cuando existan contratos aprobados, podrán añadirse services/contracts,
+   adaptadores y tipos de dominio. F1 no necesita archivos vacíos ni contratos
+   que presupongan almacenamiento, fórmulas o permisos.
+
+3. Flujo de dependencias
+
+App compone layout y vista activa. Las páginas usan componentes compartidos
+y propiedades de navegación. Los módulos no importan App ni los detalles
+de autenticación.
+
+La extracción del hook useInstitutionalAuth sugerida en la arquitectura
+anterior quedaría fuera de esta F1, para mantener intacta la lógica MSAL.
+
+
+C. PLAN DE REFACTORIZACIÓN POR ETAPAS
+===================================
+
+ETAPA 0. REFERENCIA PREVIA
+
+Archivos nuevos: ninguno.
+Modificaciones previstas: ninguna.
+Validación: registrar pantallas y comportamiento de acceso, navegación,
+búsqueda y menú.
+
+ETAPA 1. CATÁLOGO Y TIPOS
+
+Archivos nuevos:
+- src/types/navigation.ts
+- src/app/navigation.ts
+
+Modificaciones previstas: imports y declaraciones de src/App.tsx.
+Validación: build; verificar seis nombres, orden, iconos y descripciones.
+
+ETAPA 2. ELEMENTOS DE PRESENTACIÓN
+
+Archivos nuevos:
+- src/components/shared/PageIntro.tsx
+- src/components/layout/PageFooter.tsx
+
+Modificaciones previstas: sustituir fragmentos en src/App.tsx.
+Validación: build; comparar HTML, textos y posición del pie.
+
+ETAPA 3. PÁGINA INICIO
+
+Archivos nuevos:
+- src/features/inicio/InicioPage.tsx
+- src/features/inicio/inicio.data.ts
+
+Modificaciones previstas: extraer contenido de Inicio desde src/App.tsx.
+Validación: build; comprobar tarjetas, colores, hoja de ruta y navegación.
+
+ETAPA 4. PÁGINAS DE MÓDULOS
+
+Archivos nuevos:
+- src/components/shared/ModulePlaceholder.tsx
+- src/features/gestionar-pai/GestionarPaiPage.tsx
+- src/features/reporte-trimestral/ReporteTrimestralPage.tsx
+- src/features/validacion-avances/ValidacionAvancesPage.tsx
+- src/features/evidencias/EvidenciasPage.tsx
+- src/features/dashboard/DashboardPage.tsx
+- src/app/ModuleContent.tsx
+
+Modificaciones previstas: extraer selección y plantilla de src/App.tsx.
+Validación: build; recorrer los seis módulos y comprobar tarjetas relacionadas.
+
+ETAPA 5. LAYOUT Y CONTROLES
+
+Archivos nuevos:
+- src/components/layout/Sidebar.tsx
+- src/components/layout/Topbar.tsx
+- src/components/layout/ModuleSearch.tsx
+- src/components/layout/AppLayout.tsx
+
+Modificaciones previstas: composición de src/App.tsx.
+Validación: build; comprobar escritorio, móvil, búsqueda, colapso y controles
+de sesión.
+
+Esta etapa tiene mayor riesgo porque combina presentación y callbacks.
+Los controles de sesión recibirían los manejadores existentes, sin crear
+otra instancia o proveedor MSAL.
+
+ETAPA 6. REGRESIÓN INTEGRAL
+
+Archivos nuevos: ninguno obligatorio.
+Modificaciones previstas: solo correcciones de regresiones introducidas.
+Validación: build final y comparación completa con la referencia.
+
+COMPORTAMIENTO QUE DEBE CONSERVARSE
+
+En todas las etapas se conservaría exactamente el efecto de navigate():
+- Cambiar el módulo activo.
+- Cerrar el menú móvil.
+- Cerrar la búsqueda.
+- Desplazar la página al inicio.
+- Mantener el texto de búsqueda, como ocurre actualmente.
+
+No se modificarían main.tsx, msalConfig.ts, LoginPage.tsx, AuthLoading.tsx,
+styles.css, dependencias ni configuración. Tampoco se introducirían nuevas
+fórmulas, roles o conexiones.
+
+
+D. CRITERIOS DE ACEPTACIÓN
+=========================
+
+1. Inicio correcto.
+   La aplicación carga sin errores nuevos y conserva la pantalla de espera.
+
+2. Acceso protegido.
+   Sin cuenta se muestra únicamente el login.
+
+3. Sesión conservada.
+   Inicio, cierre, retorno de Microsoft y recarga mantienen su comportamiento.
+
+4. Seis módulos disponibles.
+   Menú, tarjetas y accesos relacionados muestran las mismas vistas.
+
+5. Navegación equivalente.
+   Mismos efectos de selección, búsqueda, cierre móvil y desplazamiento.
+
+6. Diseño equivalente.
+   Mismos colores, textos, iconos, orden, espacios y comportamiento responsive.
+
+7. Datos sin cambios.
+   Descripciones, hoja de ruta y etiquetas de demostración permanecen iguales.
+
+8. Compilación correcta.
+   npm run build termina sin errores.
+
+La comprobación visual debe cubrir escritorio, menú colapsado y tamaños
+próximos a los puntos de cambio del CSS, especialmente 760 y 530 píxeles.
+También debe incluir foco mediante teclado y apertura del buscador.
+
+
+E. VERIFICACIÓN REALIZADA Y ARCHIVOS INSPECCIONADOS
+================================================
+
+Durante el diagnóstico se ejecutó npm run build y pasó. Vite mantuvo el aviso
+del paquete JavaScript de 543,48 kB. No se ejecutaron pruebas interactivas de
+Microsoft 365 ni comparaciones visuales en navegador durante ese diagnóstico.
+
+Documentación consultada:
+- docs/arquitectura-actual-pai.md
+- docs/04-diseno/PAI-008_Plan_Implementacion.md
+- docs/02-requisitos/PAI-002_Matriz_Requisitos.md
+- docs/02-requisitos/PAI-003_Reglas_Negocio.md
+- docs/02-requisitos/PAI-004_Pendientes_Planeacion.md
+
+Código y configuración inspeccionados:
+- src/App.tsx
+- src/main.tsx
+- src/components/LoginPage.tsx
+- src/components/AuthLoading.tsx
+- src/auth/msalConfig.ts
+- src/styles.css
+- src/vite-env.d.ts
+- package.json
+- vite.config.ts
+- tsconfig.json
+- index.html
+
+También se comprobaron la rama, los archivos versionados y el estado final
+de Git.
+
+La refactorización queda pendiente de aprobación del usuario. No se ha
+ejecutado ninguna etapa de extracción. No se realizaron commit, push ni
+Pull Request. Este archivo es únicamente la entrega en texto solicitada.
