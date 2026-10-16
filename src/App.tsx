@@ -4,7 +4,9 @@ import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from './auth/msalConfig';
 import LoginPage from './components/LoginPage';
 import AuthLoading from './components/AuthLoading';
-import { PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, CalendarDays, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
+import PageIntro from './components/shared/PageIntro';
+import PageFooter from './components/layout/PageFooter';
+import { PanelLeftClose, PanelLeftOpen, Search, ArrowUpRight, ArrowRight, ShieldCheck, Clock3, Layers3, CheckCircle2, Menu, X, ChevronRight, FileSpreadsheet, Sparkles, Info, Building2 } from 'lucide-react';
 import { sections } from './app/navigation';
 
 const steps = [
@@ -121,7 +123,7 @@ function App({ initialAuthError = null }: { initialAuthError?: string | null }){
     {showSearch&&<div className="search-popover"><label htmlFor="module-search">Buscar módulo</label><input id="module-search" autoFocus value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ej. Evidencias, Dashboard..."/>{matches.map(s=><button key={s.name} onClick={()=>navigate(s.name)}><s.icon size={16}/>{s.name}<ArrowRight size={14}/></button>)}{matches.length===0&&<p>No se encontraron módulos.</p>}</div>}
     <main className="content">
       {authError && <p className="auth-error" role="alert">{authError}</p>}
-      <div className="page-intro"><div><div className="eyebrow"><span className="eyebrow-line"/>{current.eyebrow}</div><h1>{active==='Inicio'?'Plan de Acción Institucional':active}</h1><p>{current.description}</p></div><div className="intro-meta"><CalendarDays size={16}/><span>Vigencia 2026</span></div></div>
+      <PageIntro active={active} current={current} />
       {active==='Inicio'?<>
         <section className="hero"><div className="hero-content"><span className="hero-kicker"><Sparkles size={15}/> TRANSFORMACIÓN DIGITAL</span><h2>Una nueva forma de planear, hacer seguimiento y avanzar.</h2><p>Estamos construyendo un espacio centralizado para gestionar el Plan de Acción Institucional, con información organizada y procesos más claros.</p><button className="hero-cta" onClick={()=>navigate('Gestionar PAI')}>Explorar módulos <ArrowUpRight size={17}/></button></div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orbit orbit-three"/><div className="hero-art-card"><Layers3 size={32}/><span>PAI</span><small>2026</small></div></div></section>
         <div className="section-head"><div><span className="overline">EXPLORA EL PORTAL</span><h2>Módulos de trabajo</h2><p>Accede a las funciones previstas para cada etapa del proceso.</p></div></div>
@@ -132,7 +134,7 @@ function App({ initialAuthError = null }: { initialAuthError?: string | null }){
         <div className="module-content-grid"><section className="surface main-module"><div className="surface-heading"><div><span className="overline">VISTA GENERAL</span><h2>Espacio de trabajo</h2></div><span className="small-pill">Próximamente</span></div><div className="placeholder-illustration"><div className="placeholder-icon"><CurrentIcon size={36}/></div><h3>Preparando el módulo de {active.toLowerCase()}</h3><p>La navegación y el diseño están disponibles. Las funciones operativas se incorporarán después de validar los requisitos del proceso y las reglas de negocio.</p><div className="placeholder-features"><span><CheckCircle2 size={16}/> Estructura visual</span><span><Clock3 size={16}/> Funcionalidad pendiente</span></div></div></section><aside className="surface context-panel"><span className="overline">CONTEXTO DEL MÓDULO</span><h2>¿Qué permitirá hacer?</h2><p>{current.description}</p><div className="context-row"><FileSpreadsheet size={18}/><span>Basado en el proceso actual del PAI 2026.</span></div><div className="context-row"><Building2 size={18}/><span>Requisitos sujetos a revisión por Planeación.</span></div><div className="context-row"><ShieldCheck size={18}/><span>Acceso y permisos por definir e implementar.</span></div><button className="back-link" onClick={()=>navigate('Inicio')}>Volver al inicio <ArrowRight size={16}/></button></aside></div>
         <div className="section-head related"><div><span className="overline">CONTINÚA EXPLORANDO</span><h2>Otros módulos</h2></div></div><div className="related-grid">{sections.filter(s=>s.name!==active).slice(0,3).map(s=><button key={s.name} onClick={()=>navigate(s.name)}><s.icon size={19}/><span>{s.name}</span><ArrowUpRight size={16}/></button>)}</div>
       </>}
-      <footer className="page-footer"><span>© 2026 Fundación Universitaria María Cano</span><span>PAI Digital · Prototipo de interfaz</span></footer>
+      <PageFooter />
     </main></div>
   </div>;
 }
