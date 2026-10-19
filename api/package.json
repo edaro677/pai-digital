@@ -3,14 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "PAI Digital F2 L1: diagnóstico técnico exclusivamente local",
+  "description": "PAI Digital F2: diagnóstico local y contratos técnicos L2",
   "main": ".local-build/functions/health.js",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "build": "npm run check:boundaries && node scripts/clean-local-build.mjs && tsc -p tsconfig.json",
+    "check:contracts": "tsc -p tsconfig.contracts.json",
+    "build": "npm run check:boundaries && npm run check:contracts && node scripts/clean-local-build.mjs && tsc -p tsconfig.json",
     "pretest": "npm run build",
     "test": "node --test tests/*.test.mjs",
     "prestart": "npm run build",

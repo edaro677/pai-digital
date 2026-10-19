@@ -1,7 +1,9 @@
-# API PAI — F2 / L1 local
+# API PAI — F2 / L1 local y contratos L2
 
 Proyecto independiente del frontend. Único contrato: `GET /api/poc/health`, JSON estático,
-sin datos institucionales, repositorios, identidad simulada, permisos de negocio ni integraciones.
+sin datos institucionales, repositorios concretos, identidad simulada, permisos de negocio ni integraciones.
+L2 añade únicamente entidades, errores y puertos de persistencia. Las decisiones y límites
+están en [L2_Modelo_Contratos.md](./L2_Modelo_Contratos.md); no se implementa L3.
 
 ## Requisitos y ejecución
 
@@ -68,7 +70,8 @@ Los logs de esta prueba están en `.azurite/`, ignorados por Git. No contienen c
 - `src/functions`: registro del único trigger HTTP.
 - `src/http`: respuesta del endpoint independiente del registro.
 - `src/infrastructure`: defensa de arranque local; no autentica usuarios.
-- `src/domain` y `src/application`: directorios reservados, sin reglas ni entidades aún.
+- `src/domain`: entidades técnicas sintéticas, tipos nominales, errores y validadores de representación.
+- `src/application/ports`: contratos de repositorio, unidad transaccional y reloj; sin servicios.
 - `scripts`: compilación local, límites de alcance y arranque con dirección fija.
 - `tests`: contrato técnico, rechazo de alojamiento y pruebas negativas de límites.
 
@@ -78,8 +81,9 @@ El paquete, lockfile y TypeScript son propios. No se alteran scripts, dependenci
 configuración ni MSAL del frontend. `.local-build/` contiene únicamente compilados de
 ejecución local, ignorados por Git; no se genera ZIP ni paquete de despliegue.
 
-`check:boundaries` admite solo las tres fuentes L1. Rechaza fuentes adicionales,
-imports fuera del alcance y carga dinámica. Incorporar fixtures o una identidad local
+`check:boundaries` admite las tres fuentes L1 y las seis fuentes de dominio/puertos L2.
+Rechaza fuentes adicionales, imports fuera del alcance y carga dinámica; el núcleo no
+puede importar HTTP, infraestructura ni Azure Functions. Incorporar fixtures o una identidad local
 requiere revisar explícitamente estos límites y diseñar salidas separadas. El compilador
 tiene `rootDir: src`, y el build limpia su salida para no conservar fuentes obsoletas.
 
@@ -102,6 +106,12 @@ SQL, Graph, SharePoint ni autorización por ficha. Todo ello queda fuera de L1.
 Las pruebas de almacenamiento comprueban eliminación de configuración heredada sin
 mutar el entorno padre, conexión exclusiva al emulador, rechazo de configuraciones mixtas
 y de alojamiento Azure, direcciones/puertos fijos y directorio local acotado.
+
+El build incluye `npm run check:contracts`: compila los contratos y sus pruebas de tipos
+con `tsc --noEmit`, sin tipos Node ni DOM. Las pruebas negativas usan `@ts-expect-error`
+para detectar cruces de IDs, omisión de versión, mutaciones y operaciones no declaradas.
+Las pruebas de comportamiento L2 cubren representaciones exactas y errores diferenciados;
+no pretenden demostrar transacciones, permisos ni persistencia todavía inexistentes.
 
 La instalación de Azurite 3.37.0 informó cuatro entradas moderadas en `npm audit`, ligadas
 a dependencias transitivas (`uuid`, `@azure/ms-rest-js`, `sequelize`) y al paquete que las

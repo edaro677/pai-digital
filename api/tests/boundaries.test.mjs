@@ -23,7 +23,7 @@ async function scenario(run) {
   }
 }
 
-test('la estructura actual respeta los límites L1', () => checkBoundaries());
+test('la estructura actual respeta los límites L1/L2', () => checkBoundaries());
 
 test('agregar un fixture bajo src bloquea la compilación', () => scenario(async (directory) => {
   await mkdir(path.join(directory, 'src', 'fixtures'));
@@ -39,4 +39,14 @@ test('importar identidad local desde una fuente admitida también se rechaza', (
 test('habilitar excepciones de publicación se rechaza', () => scenario(async (directory) => {
   await writeFile(path.join(directory, '.funcignore'), '**\n!local/identity.js\n');
   await assert.rejects(checkBoundaries(directory), /publicación/);
+}));
+
+test('el dominio no puede importar HTTP aunque el archivo exista en el alcance', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'domain', 'entities.ts'), 'import "../http/health.js";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
+}));
+
+test('los contratos no pueden importar Azure Functions ni siquiera como tipo', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'application', 'ports', 'clock.ts'), 'import type { HttpRequest } from "@azure/functions";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
 }));

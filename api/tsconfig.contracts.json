@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": [],
+    "lib": ["ES2022"]
+  },
+  "include": ["src/domain/**/*.ts", "src/application/ports/**/*.ts", "tests/types/**/*.ts"],
+  "exclude": ["node_modules", ".local-build", "local", "fixtures", "mocks"]
+}
