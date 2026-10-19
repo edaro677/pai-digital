@@ -11,6 +11,7 @@ const allowedSources = new Set([
   'infrastructure/memory/state.ts', 'infrastructure/memory/session.ts',
   'infrastructure/memory/repositories.ts', 'infrastructure/memory/unitOfWork.ts',
   'application/ports/identity.ts',
+  'application/authorization/service.ts',
   'infrastructure/identity/config.ts', 'infrastructure/identity/errors.ts',
   'infrastructure/identity/bearer.ts', 'infrastructure/identity/keys.ts',
   'infrastructure/identity/normalize.ts', 'infrastructure/identity/validator.ts',
@@ -36,7 +37,7 @@ export async function checkBoundaries(root = apiRoot) {
       const relative = path.relative(sourceRoot, absolute).split(path.sep).join('/');
       if (entry.name === '.gitkeep') continue;
       if (!allowedSources.has(relative)) {
-        throw new Error(`Fuente fuera del alcance L1-L4A: ${relative}. Requiere revisión explícita.`);
+        throw new Error(`Fuente fuera del alcance L1-L4B: ${relative}. Requiere revisión explícita.`);
       }
       const source = ts.createSourceFile(absolute, await readFile(absolute, 'utf8'), ts.ScriptTarget.Latest, true);
       function inspect(node) {
@@ -65,11 +66,17 @@ export async function checkBoundaries(root = apiRoot) {
             } else if (name !== '@azure/functions') {
               const target = path.relative(sourceRoot, path.resolve(directory, name)).split(path.sep).join('/').replace(/\.js$/, '.ts');
               if (!name.startsWith('.') || !allowedSources.has(target)) {
-                throw new Error(`Importación fuera del alcance L1-L4A: ${name}`);
+                throw new Error(`Importación fuera del alcance L1-L4B: ${name}`);
               }
               if ((relative.startsWith('domain/') && !target.startsWith('domain/'))
-                  || (relative.startsWith('application/') && !target.startsWith('domain/') && !target.startsWith('application/ports/'))) {
+                  || (relative.startsWith('application/') && !target.startsWith('domain/') && !target.startsWith('application/ports/') && !target.startsWith('application/authorization/'))) {
                 throw new Error(`Dependencia de infraestructura prohibida en el núcleo: ${relative}`);
+              }
+              if (!relative.startsWith('application/') && target.startsWith('application/authorization/')) {
+                throw new Error('La autorización L4-B no debe conectarse a HTTP ni a adaptadores.');
+              }
+              if (relative.startsWith('application/ports/') && target.startsWith('application/authorization/')) {
+                throw new Error('Los puertos no deben depender del servicio de autorización.');
               }
               if (memory && !target.startsWith('domain/') && !target.startsWith('application/ports/') && !target.startsWith('infrastructure/memory/')) {
                 throw new Error(`Adaptador de memoria acoplado a ejecución HTTP: ${relative}`);
@@ -96,5 +103,5 @@ export async function checkBoundaries(root = apiRoot) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await checkBoundaries();
-  console.log('Límites L1-L4A verificados: identidad y persistencia aisladas, sin integración HTTP ni publicación.');
+  console.log('Límites L1-L4B verificados: identidad, autorización y persistencia separadas, sin integración HTTP ni publicación.');
 }

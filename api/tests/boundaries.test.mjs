@@ -23,7 +23,7 @@ async function scenario(run) {
   }
 }
 
-test('la estructura actual respeta los límites L1-L4A', () => checkBoundaries());
+test('la estructura actual respeta los límites L1-L4B', () => checkBoundaries());
 
 test('agregar un fixture bajo src bloquea la compilación', () => scenario(async (directory) => {
   await mkdir(path.join(directory, 'src', 'fixtures'));
@@ -79,4 +79,19 @@ test('identidad no puede consultar el adaptador de memoria', () => scenario(asyn
 test('jose no puede incorporarse al dominio', () => scenario(async (directory) => {
   await writeFile(path.join(directory, 'src', 'domain', 'types.ts'), 'import { jwtVerify } from "jose";');
   await assert.rejects(checkBoundaries(directory), /solo está permitido/);
+}));
+
+test('el diagnóstico HTTP no puede activar autorización L4-B', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'health.ts'), 'import "../application/authorization/service.js";');
+  await assert.rejects(checkBoundaries(directory), /autorización L4-B no debe conectarse/);
+}));
+
+test('la autorización no puede acceder directamente a memoria', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'application', 'authorization', 'service.ts'), 'import "../../infrastructure/memory/unitOfWork.js";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
+}));
+
+test('los puertos L2 no pueden depender de la autorización', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'application', 'ports', 'clock.ts'), 'import "../authorization/service.js";');
+  await assert.rejects(checkBoundaries(directory), /puertos no deben depender/);
 }));
