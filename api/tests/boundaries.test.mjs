@@ -23,7 +23,7 @@ async function scenario(run) {
   }
 }
 
-test('la estructura actual respeta los límites L1/L2/L3', () => checkBoundaries());
+test('la estructura actual respeta los límites L1-L4A', () => checkBoundaries());
 
 test('agregar un fixture bajo src bloquea la compilación', () => scenario(async (directory) => {
   await mkdir(path.join(directory, 'src', 'fixtures'));
@@ -64,4 +64,19 @@ test('el diagnóstico HTTP no puede activar el repositorio en memoria', () => sc
 test('el adaptador no puede importar fixtures de pruebas', () => scenario(async (directory) => {
   await writeFile(path.join(directory, 'src', 'infrastructure', 'memory', 'unitOfWork.ts'), 'import "../../../tests/fixtures/memory.mjs";');
   await assert.rejects(checkBoundaries(directory), /Importación fuera/);
+}));
+
+test('el endpoint de diagnóstico no puede activar autenticación L4-A', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'health.ts'), 'import "../infrastructure/identity/validator.js";');
+  await assert.rejects(checkBoundaries(directory), /no debe conectarse a HTTP/);
+}));
+
+test('identidad no puede consultar el adaptador de memoria', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'infrastructure', 'identity', 'validator.ts'), 'import "../memory/unitOfWork.js";');
+  await assert.rejects(checkBoundaries(directory), /no debe activar el adaptador/);
+}));
+
+test('jose no puede incorporarse al dominio', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'domain', 'types.ts'), 'import { jwtVerify } from "jose";');
+  await assert.rejects(checkBoundaries(directory), /solo está permitido/);
 }));

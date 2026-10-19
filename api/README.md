@@ -1,10 +1,12 @@
-# API PAI — F2 / L1 local, contratos L2 y memoria L3
+# API PAI — F2 / L1 local, contratos L2, memoria L3 e identidad L4-A
 
 Proyecto independiente del frontend. Único contrato: `GET /api/poc/health`, JSON estático,
 sin datos institucionales, identidad simulada, permisos de negocio ni integraciones.
 L2 define entidades, errores y puertos: [L2_Modelo_Contratos.md](./L2_Modelo_Contratos.md).
 L3 implementa memoria volátil solo para uso técnico y pruebas, sin conectarla a HTTP:
-[L3_Persistencia_Memoria.md](./L3_Persistencia_Memoria.md). No se implementan L4 ni etapas posteriores.
+[L3_Persistencia_Memoria.md](./L3_Persistencia_Memoria.md).
+L4-A añade una biblioteca aislada de verificación JWT Entra v2, sin integrarla con rutas:
+[L4A_Identidad_Entra.md](./L4A_Identidad_Entra.md). No se implementan L4-B ni etapas posteriores.
 
 ## Requisitos y ejecución
 
@@ -72,6 +74,7 @@ Los logs de esta prueba están en `.azurite/`, ignorados por Git. No contienen c
 - `src/http`: respuesta del endpoint independiente del registro.
 - `src/infrastructure`: defensa de arranque local; no autentica usuarios.
 - `src/infrastructure/memory`: siete repositorios y UnitOfWork volátil; sin I/O ni autorización.
+- `src/infrastructure/identity`: configuración, Bearer, JWT, JWKS y normalización; sin repositorios ni HTTP.
 - `src/domain`: entidades técnicas sintéticas, tipos nominales, errores y validadores de representación.
 - `src/application/ports`: contratos de repositorio, unidad transaccional y reloj; sin servicios.
 - `scripts`: compilación local, límites de alcance y arranque con dirección fija.
@@ -84,7 +87,8 @@ configuración ni MSAL del frontend. `.local-build/` contiene únicamente compil
 ejecución local, ignorados por Git; no se genera ZIP ni paquete de despliegue.
 
 `check:boundaries` admite las tres fuentes L1, seis fuentes de dominio/puertos L2 y cuatro
-fuentes del adaptador L3. Los fixtures solo existen bajo tests, fuera del build.
+fuentes del adaptador L3, un puerto nuevo y seis módulos de identidad L4-A.
+Los fixtures solo existen bajo tests, fuera del build.
 Rechaza fuentes adicionales, imports fuera del alcance y carga dinámica; el núcleo no
 puede importar HTTP, infraestructura ni Azure Functions. Incorporar fixtures o una identidad local
 requiere revisar explícitamente estos límites y diseñar salidas separadas. El compilador
@@ -95,7 +99,7 @@ No hay scripts de despliegue. Estas defensas no impiden que alguien eluda delibe
 las herramientas o cambie la configuración: no constituyen autorización de producción.
 
 El registro falla si no se habilita el modo local de desarrollo o si detecta indicadores
-de alojamiento Azure. No existe proveedor real ni fallback de autenticación ficticia.
+de alojamiento Azure. El validador L4-A no se instancia desde el host y no hay fallback ficticio.
 La comprobación de entorno es una defensa adicional, no un mecanismo de identidad.
 Los indicadores de Azure se conservan al sanear el entorno: el lanzador y el worker
 rechazan alojamiento, aunque la conexión del emulador esté correctamente configurada.
@@ -115,6 +119,11 @@ con `tsc --noEmit`, sin tipos Node ni DOM. Las pruebas negativas usan `@ts-expec
 para detectar cruces de IDs, omisión de versión, mutaciones y operaciones no declaradas.
 Las pruebas de comportamiento L2 cubren representaciones exactas y errores diferenciados;
 no pretenden demostrar transacciones, permisos ni persistencia todavía inexistentes.
+
+Las pruebas L4-A generan claves efímeras, firman tokens sintéticos y verifican configuración,
+firma, claims, caché y rotación sin red. No equivalen a validación en el tenant institucional.
+`jose@6.2.12` es la única dependencia incorporada para ello. No se requiere ni se incluye
+un client secret, certificado privado de producción o token institucional.
 
 La instalación de Azurite 3.37.0 informó cuatro entradas moderadas en `npm audit`, ligadas
 a dependencias transitivas (`uuid`, `@azure/ms-rest-js`, `sequelize`) y al paquete que las

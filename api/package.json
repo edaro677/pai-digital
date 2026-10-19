@@ -19,7 +19,8 @@
     "storage:start": "node scripts/start-storage.mjs"
   },
   "dependencies": {
-    "@azure/functions": "4.16.5"
+    "@azure/functions": "4.16.5",
+    "jose": "6.2.12"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
