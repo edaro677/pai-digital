@@ -1,0 +1,9 @@
+node_modules/
+.local-build/
+.test-tmp/
+local.settings.json
+.env*
+*.log
+*.tsbuildinfo
+.azurefunctions/
+.azurite/

@@ -1,0 +1,28 @@
+{
+  "name": "pai-api-local-poc",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PAI Digital F2 L1: diagnóstico técnico exclusivamente local",
+  "main": ".local-build/functions/health.js",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "build": "npm run check:boundaries && node scripts/clean-local-build.mjs && tsc -p tsconfig.json",
+    "pretest": "npm run build",
+    "test": "node --test tests/*.test.mjs",
+    "prestart": "npm run build",
+    "start": "node scripts/start-local.mjs",
+    "storage:start": "node scripts/start-storage.mjs"
+  },
+  "dependencies": {
+    "@azure/functions": "4.16.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "azurite": "3.37.0",
+    "typescript": "5.7.3"
+  }
+}
