@@ -8,6 +8,8 @@ const allowedSources = new Set([
   'functions/health.ts', 'http/health.ts', 'infrastructure/localOnly.ts',
   'domain/types.ts', 'domain/entities.ts', 'domain/errors.ts',
   'application/ports/repositories.ts', 'application/ports/unitOfWork.ts', 'application/ports/clock.ts',
+  'infrastructure/memory/state.ts', 'infrastructure/memory/session.ts',
+  'infrastructure/memory/repositories.ts', 'infrastructure/memory/unitOfWork.ts',
 ]);
 
 export async function checkBoundaries(root = apiRoot) {
@@ -30,7 +32,7 @@ export async function checkBoundaries(root = apiRoot) {
       const relative = path.relative(sourceRoot, absolute).split(path.sep).join('/');
       if (entry.name === '.gitkeep') continue;
       if (!allowedSources.has(relative)) {
-        throw new Error(`Fuente fuera del alcance L1/L2: ${relative}. Requiere revisión explícita.`);
+        throw new Error(`Fuente fuera del alcance L1/L2/L3: ${relative}. Requiere revisión explícita.`);
       }
       const source = ts.createSourceFile(absolute, await readFile(absolute, 'utf8'), ts.ScriptTarget.Latest, true);
       function inspect(node) {
@@ -45,17 +47,28 @@ export async function checkBoundaries(root = apiRoot) {
             if (!ts.isStringLiteral(specifier)) throw new Error('Importación no estática.');
             const name = specifier.text;
             const core = relative.startsWith('domain/') || relative.startsWith('application/');
-            if (core && name === '@azure/functions') {
+            const memory = relative.startsWith('infrastructure/memory/');
+            if ((core || memory) && name === '@azure/functions') {
               throw new Error(`Dependencia de infraestructura prohibida en el núcleo: ${relative}`);
             }
-            if (name !== '@azure/functions') {
+            if (name.startsWith('node:')) {
+              if (relative !== 'infrastructure/memory/unitOfWork.ts' || !['node:crypto', 'node:async_hooks'].includes(name)) {
+                throw new Error(`Módulo Node fuera del alcance: ${name}`);
+              }
+            } else if (name !== '@azure/functions') {
               const target = path.relative(sourceRoot, path.resolve(directory, name)).split(path.sep).join('/').replace(/\.js$/, '.ts');
               if (!name.startsWith('.') || !allowedSources.has(target)) {
-                throw new Error(`Importación fuera del alcance L1/L2: ${name}`);
+                throw new Error(`Importación fuera del alcance L1/L2/L3: ${name}`);
               }
               if ((relative.startsWith('domain/') && !target.startsWith('domain/'))
                   || (relative.startsWith('application/') && !target.startsWith('domain/') && !target.startsWith('application/ports/'))) {
                 throw new Error(`Dependencia de infraestructura prohibida en el núcleo: ${relative}`);
+              }
+              if (memory && !target.startsWith('domain/') && !target.startsWith('application/ports/') && !target.startsWith('infrastructure/memory/')) {
+                throw new Error(`Adaptador de memoria acoplado a ejecución HTTP: ${relative}`);
+              }
+              if (!memory && !core && target.startsWith('infrastructure/memory/')) {
+                throw new Error('El diagnóstico HTTP L1 no debe activar el adaptador L3.');
               }
             }
           }
@@ -70,5 +83,5 @@ export async function checkBoundaries(root = apiRoot) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await checkBoundaries();
-  console.log('Límites L1/L2 verificados: diagnóstico local y contratos independientes, sin adaptadores ni publicación.');
+  console.log('Límites L1/L2/L3 verificados: adaptador volátil aislado, sin fixtures de ejecución ni publicación.');
 }
