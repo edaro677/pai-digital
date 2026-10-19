@@ -6,7 +6,7 @@
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L1–L4-B completadas y registradas en Git; L5 — Consultas HTTP autenticadas **completada en su alcance técnico local, pendiente de commit**. L6 es la siguiente etapa, todavía no iniciada.
+**Estado:** F2 en ejecución; L1–L5 completadas en alcance técnico local y registradas en Git. L5 corresponde a `f287707`. L6-A aprobada como diseño; L6-B **completada en su alcance técnico local, pendiente de commit**. L7 no iniciada.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `a251e2a` — `docs(api): actualiza estado de L4-B y prepara L5`. El commit de implementación L4-B sigue siendo `8914e94`; L5 no tiene commit.
+- Último commit confirmado mediante Git: `f287707` — `feat(api): implementa consultas HTTP autenticadas por ficha`. L6-B parte de ese HEAD y no tiene commit.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -70,8 +70,9 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L3 — Persistencia transaccional en memoria | Completada | `d68cca8` | 53 pruebas aprobadas; 10 archivos; Git limpio tras commit según cierre |
 | L4-A — Identidad Microsoft Entra ID | Completada | `131cab7` | 94 pruebas aprobadas; 16 archivos; Git limpio tras commit según cierre |
 | L4-B — Autorización por ficha y capacidades | Completada | `8914e94` | 132 pruebas aprobadas según cierre; commit verificado localmente, 6 archivos |
-| L5 — Consultas HTTP autenticadas | **Completada en alcance técnico local; pendiente de commit** | — | Dos GET; 182 pruebas automatizadas aprobadas; host Functions/Azurite y nueve peticiones HTTP reales validados; sin commit L5 |
-| L6 — Escrituras HTTP | Siguiente etapa; no iniciada | — | Requiere alcance y autorización independiente |
+| L5 — Consultas HTTP autenticadas | Completada en alcance técnico local | `f287707` | Dos GET; 182 pruebas aprobadas; Functions/Azurite y nueve peticiones HTTP reales validados |
+| L6-A — Diseño de escrituras | Aprobado como diseño técnico | — | Sin cambios de código en esa etapa |
+| L6-B — Escrituras HTTP seguras | **Completada en alcance técnico local; pendiente de commit** | — | POST/PATCH/GET de reporte; 214 pruebas aprobadas; Functions/Azurite, seis operaciones registradas y 18 peticiones HTTP reales validadas |
 | L7 regresión integral | Pendiente | — | — |
 
 **Último `git log -5 --oneline` confirmado localmente:**
@@ -141,16 +142,21 @@ Los nombres Gestor ALFA, Gestor BETA y Consultor ALFA describen fixtures, no rol
 institucionales aprobados. Los estados, capacidades y convenciones de PoC no sustituyen
 las decisiones pendientes de Planeación. Detalle: [L4B_Autorizacion_Fichas.md](../../api/L4B_Autorizacion_Fichas.md).
 
-## 6. Cierre local de L5 y siguiente etapa L6
+## 6. Cierre local de L5 y etapa actual L6-B
 
 **Estado:** L5 completada en su alcance técnico local por instrucción expresa del usuario,
-partiendo de `a251e2a`; pendiente de commit, sin identificador propio. L4-B permanece
-completada en `8914e94`. L6 — Escrituras HTTP es la siguiente etapa y no se ha iniciado.
+partiendo de `a251e2a` y registrada en `f287707`. L4-B permanece completada en `8914e94`.
+L6-A fue aprobada como diseño. L6-B está completada en alcance técnico local, pendiente
+de commit; integra identidad L4-A, autorización L4-B y persistencia transaccional L3.
 
 Se implementan GET `/api/poc/fichas/{fichaId}` y `/api/poc/fichas/{fichaId}/actividades`,
 con capacidad exacta poc:read, autorización/lectura en una misma transacción y DTO mínimos.
 Se usa 404 idéntico para ficha inexistente/no visible. La identidad proviene del JWT L4-A,
-nunca del cuerpo, query o encabezados de suplantación. No hay escrituras HTTP ni lista global.
+nunca del cuerpo, query o encabezados de suplantación. L5 no incluía escrituras HTTP ni
+lista global. L6-B añade POST de creación, PATCH de actualización y GET individual de
+reportes, con auditoría, concurrencia optimista e idempotencia en una misma transacción.
+Su validación registra 214 pruebas automatizadas y 18 peticiones reales sobre las seis
+operaciones del host; el detalle operativo y sus limitaciones constan al final.
 
 Se comunicó y corrigió el defecto azp de L4-A: configuración obligatoria allowedClientIds
 y pertenencia tras verificar firma, con pruebas. No cambian contratos L2 ni criptografía.
@@ -220,9 +226,11 @@ En cada actualización:
 
 ## 10. Estado al corte y acción inmediata
 
-**Corte actual tras validación operativa:** L5 completada en alcance técnico local, pendiente
-de commit. HEAD continúa en `a251e2a`; se conservan sus cambios sin registrar. Próxima
-etapa L6, todavía no iniciada. Esperar revisión y autorización antes de commit o nuevas etapas.
+**Corte actual:** L5 completada en alcance técnico local y registrada en `f287707`.
+L6-B completada en alcance técnico local sobre ese commit, pendiente de commit propio;
+L6-A aprobada como diseño. Esperar revisión y
+autorización antes de commit o nuevas etapas; L7 no iniciada. Los registros previos conservan
+el estado histórico de su fecha, incluyendo el cierre L5 antes de conocer su commit.
 
 ### Antecedente del corte tras L4-B
 
@@ -255,7 +263,10 @@ actualiza ese estado y registra los commits documentales intermedios.
   reales y arquitectura productiva todavía no aprobada.
 - **Siguiente acción:** revisión del usuario y autorización antes de versionar el maestro o iniciar L5.
 
-### Registro L5 — Implementación y cierre técnico local, pendiente de commit
+### Registro L5 — Implementación y cierre técnico local
+
+Actualización de trazabilidad: el cierre inicialmente pendiente de commit quedó registrado
+en `f287707`. Las menciones a commit pendiente en el relato siguiente describen ese corte anterior.
 
 - **Base:** rama feature/arquitectura-persistencia-pai, HEAD `a251e2a`, árbol inicial limpio.
   Entre L4-B y esta ejecución se registraron `7d22967` (maestro) y `a251e2a` (README).
@@ -299,3 +310,55 @@ actualiza ese estado y registra los commits documentales intermedios.
   No existe aprobación de arquitectura productiva ni despliegue por este cierre.
 - **Siguiente acción:** revisión y autorización del commit L5; L6 — Escrituras HTTP como
   siguiente etapa, todavía no iniciada. No se realizan commit, push, PR ni merge ni se avanza a L6/L7.
+
+### Registro L6-B — Completada en alcance técnico local, pendiente de commit
+
+- **Base:** rama feature/arquitectura-persistencia-pai, HEAD `f287707`, árbol inicial limpio.
+  Se contrastaron L2–L5, entidades, repositorios, versiones, errores, identidad, autorización
+  y composición. Los contratos L2 y los adaptadores L3/L4-A/L4-B no se modifican.
+- **Implementado para revisión:** POST `/api/poc/actividades/{activityId}/reportes`,
+  PATCH y GET `/api/poc/reportes/{reportId}`. Escrituras poc:edit-report; consulta poc:read.
+  Ficha derivada de actividad/reporte persistido, 404 uniforme sin permisos o sin recurso.
+- **Contenido técnico:** POST acepta period/quantity/narrative, crea poc-draft y genera ID,
+  actor y tiempo en servidor. PATCH exige expectedVersion y solo edita quantity/narrative;
+  diferencia omisión/null y rechaza otros estados. No son transiciones institucionales.
+- **Consistencia:** una misma instancia de memoria sirve lecturas y escrituras. Autorización,
+  idempotencia, reporte y auditoría se ejecutan en un runAtomic. SHA-256 determinista con
+  objetivo/operación/cliente/campos/versión, sin normalizar decimales. Replay tras autorización
+  y antes de volver a comprobar versión; sin segunda escritura ni auditoría. Eventos con
+  snapshots completos. Reservas y cambios se revierten ante fallos.
+- **Pruebas:** 214 aprobadas, 0 fallidas en suite L1–L6-B; API, contratos, guard y frontend
+  correctos. Se ejercitan controladores con JWT sintéticos, conflictos, carreras, replays,
+  revocación, rollback y memoria independiente. Posteriormente se ejecutó el host HTTP vivo
+  de L6-B: su evidencia se registra debajo, separada de las pruebas en proceso y de L5.
+  Persiste aviso frontend de bundle >500 kB.
+- **Documentos:** api/L6B_Escrituras_HTTP.md, README, este maestro y corrección de referencias
+  de cierre/commit en api/L5_Consultas_HTTP.md. Sin cambios en frontend, MSAL o dependencias.
+- **Límites:** memoria vacía y política temporal bloqueada en host; fixtures solo en tests;
+  sin Entra real, SQL, Graph/SharePoint, recursos o despliegues. No implementar estados,
+  aprobaciones, cierres ni reaperturas institucionales. L6-B queda completada solo en su
+  alcance técnico local y no tiene commit propio.
+- **Validación operativa L6-B:** rama y HEAD f287707 confirmados, nueve modificados y seis
+  nuevos esperados, sin cambios ajenos; build API y git diff --check correctos. Functions
+  Core Tools 4.16.0 y Azurite arrancaron correctamente en loopback. Se registraron GET
+  health, GET ficha, GET actividades, GET reporte, POST creación y PATCH actualización.
+- **HTTP real:** 18 peticiones, seis operaciones en tres escenarios. Configuración JWT
+  estructural válida pero ficticia sin token: health 200 y cinco protegidas 401. Configuración
+  incompleta y JSON inválido: health 200 y cinco protegidas 500 genérico en cada escenario.
+  POST/PATCH usaron JSON válido sintético. No se cargaron fixtures ni se permitió vigencia.
+- **Confidencialidad observada:** respuestas controladas UNAUTHENTICATED/INTERNAL_ERROR,
+  sin divulgación sensible ni marcador sintético de configuración. stderr vacíos y sin
+  errores de arranque/almacenamiento detectados; no equivale a validación productiva completa.
+- **Parada e integridad:** Functions y Azurite detenidos, cero listeners en 7071/10000/10001/
+  10002. SHA-256 de los 15 archivos y Git sin cambios durante la validación operativa.
+  Logs/resultados en api/.test-tmp/l6b-http-operational-20261019/, ignorado por Git.
+- **Cierre documental:** se actualizan únicamente api/L6B_Escrituras_HTTP.md y este maestro.
+  No se inventa hash de L6-B; HEAD sigue en f287707 y el commit está pendiente. No se
+  ejecuta de nuevo la suite o el host por esta actualización. El README conserva el estado
+  anterior de implementación hasta una sincronización expresamente autorizada.
+- **Pendientes funcionales/operativos:** memoria efímera sin persistencia operativa,
+  política temporal de asignaciones bloqueada y sin pruebas HTTP exitosas con JWT válidos
+  y datos operativos. Aprobación, devolución, cierre y reapertura institucionales requieren
+  definiciones de Planeación; no se sustituyen por estados técnicos o fixtures de prueba.
+- **Siguiente acción:** revisión y autorización del usuario; no avanzar a L7 ni realizar
+  commit, push, PR o merge.

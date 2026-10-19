@@ -12,3 +12,12 @@ app.http('pocFicha', {
 app.http('pocFichaActividades', {
   methods: ['GET'], authLevel: 'anonymous', route: 'poc/fichas/{fichaId}/actividades', handler: handlers.actividades,
 });
+app.http('pocReportCreate', {
+  methods: ['POST'], authLevel: 'anonymous', route: 'poc/actividades/{activityId}/reportes', handler: handlers.createReport,
+});
+app.http('pocReportRead', {
+  methods: ['GET'], authLevel: 'anonymous', route: 'poc/reportes/{reportId}', handler: handlers.getReport,
+});
+app.http('pocReportUpdate', {
+  methods: ['PATCH'], authLevel: 'anonymous', route: 'poc/reportes/{reportId}', handler: handlers.updateReport,
+});

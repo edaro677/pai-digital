@@ -1,7 +1,7 @@
 # F2 / L5 — Consultas HTTP autenticadas y autorizadas
 
-**Estado:** completada en su alcance técnico local; pendiente de commit. Sin identificador
-de commit L5. Este cierre no aprueba integración institucional ni despliegue productivo.
+**Estado:** completada en su alcance técnico local y registrada en el commit `f287707`.
+Este cierre no aprueba integración institucional ni despliegue productivo.
 Base verificada: `a251e2a`, rama `feature/arquitectura-persistencia-pai`, árbol inicial limpio.
 Se revisaron README, documentos L2–L4-B, entidades, contratos, registro Functions, health,
 guard y pruebas. No se cambian contratos L2 ni reglas institucionales.
@@ -227,11 +227,12 @@ operativa no modificó código, pruebas ni documentación. git diff --check fue 
 
 ## Limitaciones y siguiente etapa
 
-L5 queda **completada exclusivamente en su alcance técnico local, pendiente de commit**.
+L5 queda **completada exclusivamente en su alcance técnico local, commit `f287707`**.
 No se probó navegador, HTTP con tokens reales y datos operativos, Entra real, SQL, Graph
 o SharePoint. El host conserva memoria vacía y política temporal de asignaciones pendiente;
 los 200 de datos siguen demostrados solo por DI en pruebas automatizadas. Faltan
 composición de datos revisada y validación institucional. No hay paginación, rate limiting
 ni observabilidad operativa definitiva; estos límites no habilitan despliegue productivo.
-L6 — Escrituras HTTP es la siguiente etapa, todavía no iniciada y sujeta a autorización.
-No se crean recursos, instalan paquetes ni implementan L6/L7; no se realiza commit/push/PR/merge.
+Al cierre local L5, L6 todavía no se había iniciado. Posteriormente se aprobó el diseño
+L6-A y se autorizó L6-B, actualmente en implementación, sin commit; véase L6B_Escrituras_HTTP.md.
+No se crean recursos ni se autoriza despliegue o avance a L7 por estos antecedentes.

@@ -1,4 +1,4 @@
-# API PAI — F2 / L1–L4-B y consultas HTTP L5 en implementación
+# API PAI — F2 / L1–L5 completadas y L6-B en implementación
 
 Proyecto independiente del frontend. `GET /api/poc/health` conserva su JSON estático,
 sin datos institucionales, identidad simulada ni integración de autenticación o autorización.
@@ -12,11 +12,22 @@ capacidades, integrada por L5 mediante consultas de aplicación: [L4B_Autorizaci
 El cierre reportó **132 pruebas aprobadas, 0 fallidas**, para la suite completa L1–L4-B;
 es el resultado histórico del cierre L4-B.
 
-**L5 — Consultas HTTP autenticadas en implementación, pendiente de revisión y cierre.**
+**L5 — Consultas HTTP autenticadas completada en alcance técnico local, commit `f287707`.**
 Rutas registradas: `GET /api/poc/fichas/{fichaId}` y
 `GET /api/poc/fichas/{fichaId}/actividades`. Exigen JWT y capacidad exacta `poc:read`, con
-autorización y lectura en la misma transacción; no existen escrituras HTTP ni integración
+autorización y lectura en la misma transacción; sin integración
 con el frontend. Detalle: [L5_Consultas_HTTP.md](./L5_Consultas_HTTP.md).
+
+**L6-B — Escrituras HTTP seguras en implementación; pendiente de revisión y commit.**
+Se agregan únicamente POST `/api/poc/actividades/{activityId}/reportes`, PATCH y GET
+`/api/poc/reportes/{reportId}`. POST/PATCH requieren poc:edit-report e Idempotency-Key;
+GET requiere poc:read. Solo se crean/editan registros sintéticos poc-draft, sin transiciones
+institucionales. Detalle: [L6B_Escrituras_HTTP.md](./L6B_Escrituras_HTTP.md).
+
+Las lecturas y escrituras usan la misma instancia UnitOfWork en composición. La escritura,
+auditoría e idempotencia son atómicas. PATCH exige expectedVersion, distingue omisión/null
+y nunca recibe estado ni autoría del cliente. Los replays revalidan acceso y recuperan el
+recibo original antes de volver a comprobar versión, sin escribir ni duplicar auditoría.
 
 El host no precarga datos ni asignaciones. Sin `PAI_API_IDENTITY_CONFIG` válido, las nuevas
 rutas responden 500 genérico; health permanece operativo. La variable contiene JSON de
@@ -37,7 +48,7 @@ institucionales aprobados. No existe caché de decisiones de autorización.
 `decide()` y `requireAllowed()` reciben TransactionContext para que la comprobación y
 la futura escritura ocurran dentro de la misma unidad de trabajo. Las pruebas sintéticas
 verifican acceso cruzado, escalamiento, revocación, rollback e integración L4-A → L4-B.
-No se implementó un caso de uso funcional de escritura ni un endpoint para ello.
+L6-B integra escrituras exclusivamente técnicas de PoC, sin implementar procesos institucionales.
 
 La política temporal institucional de asignaciones sigue pendiente. L2 no define si los
 extremos validFrom/validUntil son inclusivos o exclusivos; el servicio exige una
@@ -58,7 +69,7 @@ son sintéticos; no acreditan integración institucional ni autorización de pro
 - Desde `api/`: `npm ci`, `npm run build`, `npm test`.
 - Terminal 1, desde `api/`: `npm run storage:start`. Esperar los tres mensajes de escucha.
 - Terminal 2, desde `api/`: `npm start`. Compila y ejecuta
-  `func start --address 127.0.0.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades`.
+  `func start --address 127.0.0.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades pocReportCreate pocReportRead pocReportUpdate`.
 - Antes de enviar HTTP, comprobar los cuatro listeners con PowerShell:
 
   ```powershell
@@ -114,7 +125,7 @@ Los logs de esta prueba están en `.azurite/`, ignorados por Git. No contienen c
 
 ## Capas
 
-- `src/functions`: entrada index y registro de health y las dos consultas GET.
+- `src/functions`: entrada index, health, consultas L5 y tres operaciones de reporte L6-B.
 - `src/http`: controladores de consultas y respuesta health, independientes del registro.
 - `src/composition`: unión explícita de identidad, autorización, consultas y memoria vacía.
 - `src/infrastructure`: defensa de arranque local; no autentica usuarios.
@@ -124,6 +135,8 @@ Los logs de esta prueba están en `.azurite/`, ignorados por Git. No contienen c
 - `src/application/ports`: contratos de repositorio, unidad transaccional, reloj e identidad.
 - `src/application/authorization`: servicio L4-B por ficha/capacidad, independiente de HTTP y adaptadores.
 - `src/application/queries`: lectura de ficha/actividades con autorización en el mismo contexto.
+- `src/application/reports`: comandos y lectura de reporte, recibos/DTO y coordinación transaccional.
+- `src/infrastructure/reportTools.ts`: UUID, correlación y huella SHA-256; sin persistencia ni I/O externo.
 - `scripts`: compilación local, límites de alcance y arranque con dirección fija.
 - `tests`: contratos, defensas locales, memoria transaccional, identidad y autorización sintéticas, y pruebas negativas de límites.
 
@@ -135,7 +148,7 @@ ejecución local, ignorados por Git; no se genera ZIP ni paquete de despliegue.
 
 `check:boundaries` admite las tres fuentes L1, seis fuentes de dominio/puertos L2 y cuatro
 fuentes del adaptador L3, un puerto nuevo y seis módulos de identidad L4-A, y el servicio
-de autorización L4-B y las cinco fuentes nuevas L5. La composición explícita es la entrada
+de autorización L4-B, las cinco fuentes L5 y las tres fuentes nuevas L6-B. La composición explícita es la entrada
 a los adaptadores; HTTP depende de consultas y puertos, con una excepción para reconocer
 AuthenticationError. Health no activa ninguna de esas capas. Se bloquea importar memoria
 desde el controlador/servicio o hacer depender los puertos de los servicios.
@@ -164,7 +177,20 @@ publicación. La suite posterior incluye memoria, validación JWT y autorizació
 con datos sintéticos. L5 ejercita los controladores reutilizados por Functions con JWT
 firmados localmente, el validador real y L3/L4-B; no valida Entra ID, SQL, Graph o SharePoint reales.
 La ejecución L1–L5 registra 182 pruebas aprobadas, 0 fallidas; API, contratos y límites
-correctos. No se inició Core Tools/Azurite ni se probó HTTP sobre sockets durante L5.
+correctos. La validación operativa posterior de L5 sí inició Core Tools/Azurite y ejecutó
+nueve peticiones reales: health 200; consultas sin token 401 con configuración estructural
+válida; configuración incompleta/JSON inválido 500 genérico. No se filtraron datos sensibles
+en las respuestas observadas. Esa evidencia no acredita escrituras L6-B sobre sockets.
+
+Suite actual L1–L6-B: 214 pruebas aprobadas, 0 fallidas; se ejercitan controladores HTTP
+reales con JWT sintéticos y L3/L4-A/L4-B. Se prueban versiones obsoletas, carreras,
+replays, revocación y rollback completo por fallos de auditoría o idempotencia. L6-B no
+inicia el host ni cambia su política temporal; las respuestas exitosas usan DI solo en tests.
+
+POST/PATCH aceptan exclusivamente JSON UTF-8 no comprimido, hasta 16 KiB leídos por stream
+incluso sin Content-Length. Límites técnicos: narrative 4000 caracteres, period/decimal/
+expectedVersion 128, clave 1–128 con caracteres acotados. No son límites institucionales.
+Errores nuevos: 409 conflicto genérico; 413 tamaño excesivo; 415 formato no admitido.
 
 Las pruebas de almacenamiento comprueban eliminación de configuración heredada sin
 mutar el entorno padre, conexión exclusiva al emulador, rechazo de configuraciones mixtas
@@ -195,5 +221,5 @@ desarrollo: revisar actualizaciones compatibles antes de ampliar su uso; no empa
 como dependencia de ejecución ni considerar este resultado una aprobación de producción.
 
 El host Functions incluye rutas administrativas propias; no son funciones de negocio.
-Se registran únicamente `pocHealth`, `pocFicha` y `pocFichaActividades`, todos GET.
-No exponer este host a LAN, Internet ni túneles. L6/L7 no se implementan.
+Se conservan los tres GET L1–L5 y se agregan pocReportCreate (POST), pocReportRead (GET)
+y pocReportUpdate (PATCH). No exponer este host a LAN, Internet ni túneles. No se implementa L7.

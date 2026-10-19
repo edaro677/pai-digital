@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
 
 const root = new URL('../', import.meta.url);
-test('entrada y registro Functions conservan health y exponen solo las dos consultas GET', async () => {
+test('registro Functions conserva L1-L5 y agrega únicamente POST, GET y PATCH de reportes', async () => {
   const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
   assert.equal(pkg.main, '.local-build/functions/index.js');
   const index = await readFile(new URL('src/functions/index.ts', root), 'utf8');
@@ -18,8 +18,7 @@ test('entrada y registro Functions conservan health y exponen solo las dos consu
       if (ts.isCallExpression(node) && node.expression.getText(source) === 'app.http') {
         const [name, options] = node.arguments;
         const properties = Object.fromEntries(options.properties.map(p => [p.name.getText(source), p.initializer.getText(source)]));
-        registered.push([name.text, properties.route, properties.handler]);
-        assert.equal(properties.methods, "['GET']");
+        registered.push([name.text, properties.route, properties.handler, properties.methods]);
         assert.equal(properties.authLevel, "'anonymous'");
       }
       ts.forEachChild(node, inspect);
@@ -28,10 +27,13 @@ test('entrada y registro Functions conservan health y exponen solo las dos consu
     assert.match(text, /assertLocalEnvironment\(\)/);
   }
   assert.deepEqual(registered, [
-    ['pocHealth', "'poc/health'", 'health'],
-    ['pocFicha', "'poc/fichas/{fichaId}'", 'handlers.ficha'],
-    ['pocFichaActividades', "'poc/fichas/{fichaId}/actividades'", 'handlers.actividades'],
+    ['pocHealth', "'poc/health'", 'health', "['GET']"],
+    ['pocFicha', "'poc/fichas/{fichaId}'", 'handlers.ficha', "['GET']"],
+    ['pocFichaActividades', "'poc/fichas/{fichaId}/actividades'", 'handlers.actividades', "['GET']"],
+    ['pocReportCreate', "'poc/actividades/{activityId}/reportes'", 'handlers.createReport', "['POST']"],
+    ['pocReportRead', "'poc/reportes/{reportId}'", 'handlers.getReport', "['GET']"],
+    ['pocReportUpdate', "'poc/reportes/{reportId}'", 'handlers.updateReport', "['PATCH']"],
   ]);
   const start = await readFile(new URL('scripts/start-local.mjs', root), 'utf8');
-  assert.match(start, /--address 127\.0\.0\.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades/);
+  assert.match(start, /--address 127\.0\.0\.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades pocReportCreate pocReportRead pocReportUpdate/);
 });

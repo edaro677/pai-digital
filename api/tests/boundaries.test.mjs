@@ -23,7 +23,7 @@ async function scenario(run) {
   }
 }
 
-test('la estructura actual respeta los límites L1-L5', () => checkBoundaries());
+test('la estructura actual respeta los límites L1-L6B', () => checkBoundaries());
 
 test('agregar un fixture bajo src bloquea la compilación', () => scenario(async (directory) => {
   await mkdir(path.join(directory, 'src', 'fixtures'));
@@ -111,4 +111,17 @@ test('health no puede activar las consultas ni la composición L5', () => scenar
 test('las consultas de aplicación no pueden depender de Azure Functions', () => scenario(async (directory) => {
   await writeFile(path.join(directory, 'src', 'application', 'queries', 'readFicha.ts'), 'import type { HttpRequest } from "@azure/functions";');
   await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
+}));
+
+test('reportes no pueden importar memoria ni herramientas concretas', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'application', 'reports', 'service.ts'), 'import "../../infrastructure/reportTools.js";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
+}));
+test('HTTP de reportes no puede activar memoria directamente', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'reportes.ts'), 'import "../infrastructure/memory/unitOfWork.js";');
+  await assert.rejects(checkBoundaries(directory), /no debe activar el adaptador/);
+}));
+test('health no puede activar servicios de escritura', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'health.ts'), 'import "../application/reports/service.js";');
+  await assert.rejects(checkBoundaries(directory), /reportes L6-B solo/);
 }));
