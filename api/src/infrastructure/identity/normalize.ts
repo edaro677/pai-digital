@@ -10,6 +10,7 @@ export function normalizeIdentity(payload: JWTPayload, config: ValidatedConfigur
   if (payload.ver !== '2.0' || payload.tid !== config.tenantId || !isGuid(payload.oid)
       || !isGuid(payload.azp) || payload.aud !== config.audience || payload.iss !== config.issuer
       || payload.idtyp === 'app' || typeof payload.scp !== 'string'
+      || !config.allowedClientIds.includes(payload.azp.toLowerCase())
       || !Number.isSafeInteger(payload.exp) || !Number.isSafeInteger(payload.nbf)
       || payload.nbf! >= payload.exp!) throw new AuthenticationError('INVALID_CLAIMS');
   const scopes = payload.scp.split(' ');

@@ -6,9 +6,9 @@
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L1–L4-B completadas y registradas en Git; L5 — Consultas HTTP autenticadas pendiente de autorización e implementación.
+**Estado:** F2 en ejecución; L1–L4-B completadas y registradas en Git; L5 — Consultas HTTP autenticadas **completada en su alcance técnico local, pendiente de commit**. L6 es la siguiente etapa, todavía no iniciada.
 
-**Fuente de estado:** antecedentes de conversación, reportes de cierre y documentación técnica, contrastados por Codex mediante inspección local de Git y archivos el 19 de octubre de 2026. Los resultados históricos de pruebas se citan según sus reportes; no se volvieron a ejecutar en esta actualización documental.
+**Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
 ## 1. Propósito y reglas de actualización
 
@@ -50,13 +50,13 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `8914e94` — `feat(api): implementa autorizacion por ficha y capacidades`.
+- Último commit confirmado mediante Git: `a251e2a` — `docs(api): actualiza estado de L4-B y prepara L5`. El commit de implementación L4-B sigue siendo `8914e94`; L5 no tiene commit.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
 - Login SPA Entra ID single tenant en desarrollo, sin acceso real de frontend a backend; no hay API PAI registrada/configurada aún.
 - Datos originales en `insumos/planeacion`, ignorados por Git (`/insumos/`).
-- Endpoint existente: `GET /api/poc/health`, de diagnóstico local, sin integración de autenticación L4-A.
+- Endpoints: `GET /api/poc/health` conserva diagnóstico local anónimo; L5 añade las consultas GET de ficha y actividades con L4-A/L4-B y persistencia L3, completadas en alcance local y verificadas también sobre HTTP real, sin datos operativos precargados.
 - Frontend de seis módulos demostrativos: Inicio, Gestionar PAI, Reporte trimestral, Validación de avances, Evidencias y Dashboard.
 
 ## 4. Hitos confirmados y commits
@@ -70,11 +70,14 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L3 — Persistencia transaccional en memoria | Completada | `d68cca8` | 53 pruebas aprobadas; 10 archivos; Git limpio tras commit según cierre |
 | L4-A — Identidad Microsoft Entra ID | Completada | `131cab7` | 94 pruebas aprobadas; 16 archivos; Git limpio tras commit según cierre |
 | L4-B — Autorización por ficha y capacidades | Completada | `8914e94` | 132 pruebas aprobadas según cierre; commit verificado localmente, 6 archivos |
-| L5 — Consultas HTTP autenticadas | Pendiente; siguiente etapa | — | Requiere alcance y autorización antes de iniciar |
-| L6 escrituras HTTP | Pendiente | — | No iniciar antes de L5 |
+| L5 — Consultas HTTP autenticadas | **Completada en alcance técnico local; pendiente de commit** | — | Dos GET; 182 pruebas automatizadas aprobadas; host Functions/Azurite y nueve peticiones HTTP reales validados; sin commit L5 |
+| L6 — Escrituras HTTP | Siguiente etapa; no iniciada | — | Requiere alcance y autorización independiente |
 | L7 regresión integral | Pendiente | — | — |
 
 **Último `git log -5 --oneline` confirmado localmente:**
+
+Referencia histórica de la sincronización tras L4-B; el nuevo HEAD se registra en la
+entrada L5 al final, sin reemplazar este antecedente.
 
 ```text
 8914e94 feat(api): implementa autorizacion por ficha y capacidades
@@ -117,7 +120,7 @@ siga sin seguimiento. Esta intervención no hace commit, push, PR ni merge.
 - Verifica RS256/JWKS, `iss`, `aud`, `tid`, `exp`, `nbf`, `oid`, `azp`, `scp`, versión 2.0; identidad basada en `tid+oid`.
 - Rechaza Graph access tokens, ID tokens de SPA, app-only basado solo en roles y credenciales inválidas.
 - Pruebas locales con claves efímeras; caché JWKS de 10 min y cooldown de 30 s reportados.
-- No integrado a HTTP ni a frontend; faltan registro/configuración de API y scope en Entra, cambios MSAL y validación institucional real.
+- Al cierre L4-A no estaba integrada a HTTP ni frontend. L5 conecta el validador a consultas HTTP; siguen pendientes registro/configuración de API/scope en Entra, cambios MSAL y validación institucional real.
 - Configuración futura de recurso API debe emitir tokens v2 (`requestedAccessTokenVersion=2`), sujeto a revisión de la configuración real.
 
 ### L4-B
@@ -132,22 +135,33 @@ siga sin seguimiento. Esta intervención no hace commit, push, PR ni merge.
 - Integración L4-A → L4-B probada mediante token sintético firmado, claves efímeras y transporte OIDC/JWKS local. No equivale a una prueba contra Entra ID institucional.
 - **Probado según reporte de cierre:** 132 pruebas aprobadas, 0 fallidas (94 previas, 35 nuevas de autorización y 3 negativas de límites); API, contratos, límites y frontend compilan. Permanece el aviso previo del bundle frontend >500 kB. Esta actualización no vuelve a ejecutar esas pruebas.
 - **Pendiente:** definición institucional de vigencia de asignaciones. L2 no prescribe extremos inclusivos/exclusivos; el servicio exige AssignmentValidityPolicy explícita y no ofrece una implementación predeterminada en src. Las pruebas asumen únicamente en laboratorio `validFrom <= instante < validUntil`, con null sin fin superior.
-- **Pendiente:** pruebas con Entra ID real, integración y pruebas de endpoints HTTP autenticados. Health conserva su comportamiento local anónimo.
+- **Pendiente al cierre L4-B:** pruebas con Entra ID real e integración HTTP. L5 añade controladores con datos sintéticos y verifica el host HTTP vivo sin token; siguen pendientes Entra real y HTTP con tokens reales/datos operativos. Health conserva su comportamiento local anónimo.
 
 Los nombres Gestor ALFA, Gestor BETA y Consultor ALFA describen fixtures, no roles
 institucionales aprobados. Los estados, capacidades y convenciones de PoC no sustituyen
 las decisiones pendientes de Planeación. Detalle: [L4B_Autorizacion_Fichas.md](../../api/L4B_Autorizacion_Fichas.md).
 
-## 6. Próximo paso: L5 — Consultas HTTP autenticadas
+## 6. Cierre local de L5 y siguiente etapa L6
 
-**Estado:** pendiente, sin implementación ni autorización de ejecución en esta actualización.
-L4-B, antes prevista como siguiente etapa, ya está completada en `8914e94`.
+**Estado:** L5 completada en su alcance técnico local por instrucción expresa del usuario,
+partiendo de `a251e2a`; pendiente de commit, sin identificador propio. L4-B permanece
+completada en `8914e94`. L6 — Escrituras HTTP es la siguiente etapa y no se ha iniciado.
 
-Preparar el alcance de L5 para componer autenticación L4-A y autorización L4-B en consultas
-HTTP aprobadas, conservando la separación de capas y los controles locales. Antes de
-implementar, revisar contratos HTTP, errores sin filtración de datos, resolución de la ficha
-real del recurso, política temporal explícita y pruebas negativas. Ninguna identidad se
-deberá tomar directamente del cuerpo o de encabezados de suplantación.
+Se implementan GET `/api/poc/fichas/{fichaId}` y `/api/poc/fichas/{fichaId}/actividades`,
+con capacidad exacta poc:read, autorización/lectura en una misma transacción y DTO mínimos.
+Se usa 404 idéntico para ficha inexistente/no visible. La identidad proviene del JWT L4-A,
+nunca del cuerpo, query o encabezados de suplantación. No hay escrituras HTTP ni lista global.
+
+Se comunicó y corrigió el defecto azp de L4-A: configuración obligatoria allowedClientIds
+y pertenencia tras verificar firma, con pruebas. No cambian contratos L2 ni criptografía.
+La composición real empieza con memoria vacía y vigencia bloqueada; sin configuración
+JWT devuelve 500 genérico. Las respuestas 200 se prueban por DI, no con fixtures en el host.
+
+La suite automatizada aprobó 182 pruebas. La validación operativa posterior compiló la API,
+inició Azure Functions/Azurite en loopback y ejecutó nueve peticiones HTTP: health 200 en
+los tres escenarios; ambas consultas sin token 401 con configuración JWT estructural válida;
+ambas consultas 500 genérico con configuración incompleta y con JSON inválido. Las respuestas
+observadas no filtraron información sensible. Los procesos se detuvieron al terminar.
 
 La vigencia institucional y la configuración/pruebas reales de Entra ID siguen pendientes.
 Cualquier convención técnica temporal adicional para una PoC deberá identificarse como
@@ -206,10 +220,19 @@ En cada actualización:
 
 ## 10. Estado al corte y acción inmediata
 
+**Corte actual tras validación operativa:** L5 completada en alcance técnico local, pendiente
+de commit. HEAD continúa en `a251e2a`; se conservan sus cambios sin registrar. Próxima
+etapa L6, todavía no iniciada. Esperar revisión y autorización antes de commit o nuevas etapas.
+
+### Antecedente del corte tras L4-B
+
 Último hecho confirmado localmente: L4-B registrada en `8914e94`, sobre
 `feature/arquitectura-persistencia-pai`; L1–L4-B completadas. El único pendiente de Git
 observado es el maestro preexistente sin seguimiento. La siguiente etapa es L5 — Consultas
 HTTP autenticadas, todavía pendiente de alcance y autorización. No se inicia en esta intervención.
+
+El párrafo anterior corresponde al corte histórico tras L4-B. La entrada siguiente L5
+actualiza ese estado y registra los commits documentales intermedios.
 
 ### Registro de sincronización — 19/10/2026
 
@@ -231,3 +254,48 @@ HTTP autenticadas, todavía pendiente de alcance y autorización. No se inicia e
 - **Riesgos vigentes:** política temporal institucional sin definir, ausencia de pruebas Entra/HTTP
   reales y arquitectura productiva todavía no aprobada.
 - **Siguiente acción:** revisión del usuario y autorización antes de versionar el maestro o iniciar L5.
+
+### Registro L5 — Implementación y cierre técnico local, pendiente de commit
+
+- **Base:** rama feature/arquitectura-persistencia-pai, HEAD `a251e2a`, árbol inicial limpio.
+  Entre L4-B y esta ejecución se registraron `7d22967` (maestro) y `a251e2a` (README).
+  El estado sin seguimiento y la discrepancia README citados en la entrada histórica ya
+  quedaron resueltos por esos commits; no describen el estado inicial de L5.
+- **Implementado para revisión:** consultas de ficha/actividades, controlador reutilizado por
+  Functions, composición explícita, registro GET y selección de las tres funciones en loopback.
+  Corrección mínima previa azp mediante lista explícita de clientes permitidos.
+- **Archivos:** cinco fuentes nuevas L5 bajo application/queries, http, composition y functions;
+  cambios en configuración/normalización de identidad, entrypoint package.json, lanzador,
+  guard y pruebas. Documentación en `api/L5_Consultas_HTTP.md` y secciones afectadas de README.
+- **Probado localmente:** suite L1–L5, 182 aprobadas y 0 fallidas; API, contratos y límites
+  correctos; frontend compila con aviso previo de bundle >500 kB. Controladores reales con
+  HttpRequest, JWT sintéticos firmados, L4-A/L4-B y persistencia L3. Registro comprobado por
+  AST y posteriormente mediante arranque real de Azure Functions Core Tools y Azurite.
+- **Seguridad:** 401 por autenticación inválida; 400 por solicitud mal formada tras autenticar;
+  404 uniforme por ausencia/falta de acceso; 403 reservado sin emitir para evitar enumeración;
+  500 genérico. Se prueban revocación, concurrencia, GET sin escrituras y acceso cruzado.
+- **Supuestos/límites:** política de intervalo solo en tests; composición del host bloquea
+  vigencia y no precarga datos. No se modifica MSAL ni se instala dependencia. Sin configuración
+  JWT explícita, nuevas rutas responden 500 y health permanece independiente.
+- **Validación operativa:** nueve peticiones HTTP reales, tres rutas en tres configuraciones.
+  Con configuración JWT estructural válida y ficticia: health 200 y consultas de ficha/
+  actividades sin token 401. Con configuración incompleta y con JSON inválido: health 200
+  y ambas consultas 500 genérico en cada escenario. Se confirmaron las tres rutas GET y
+  listeners exclusivamente 127.0.0.1:7071/10000/10001/10002 antes de enviar HTTP.
+- **Confidencialidad observada:** respuestas sin filtración de información sensible; marcador
+  sintético de configuración ausente en respuestas/logs revisados. stderr vacíos, sin avisos
+  de almacenamiento Unhealthy en la ventana observada. No es una prueba de tenant real.
+- **Evidencia operativa:** `api/.test-tmp/l5-http-operational/`, ignorado por Git; resultados
+  http-valid/incomplete/invalid-results.json y logs host-valid/incomplete/invalid y storage.
+  No se cargaron fixtures ni se habilitó política temporal permisiva. Functions y Azurite
+  quedaron detenidos, sin listeners en los cuatro puertos. La prueba conservó las huellas
+  SHA-256 de los 19 archivos L5 existentes y no alteró código ni pruebas.
+- **Cierre documental:** L5 completada en su alcance técnico local, pendiente de commit.
+  Esta intervención actualiza solo el maestro y `api/L5_Consultas_HTTP.md`; no vuelve a
+  ejecutar la suite ni el host y no inventa identificador de commit. El README conserva
+  el estado previo de implementación hasta una sincronización expresamente autorizada.
+- **Pendiente:** definición institucional de vigencia de asignaciones, memoria/composición
+  operativa de datos y pruebas HTTP con tokens reales y datos operativos, además de Entra real.
+  No existe aprobación de arquitectura productiva ni despliegue por este cierre.
+- **Siguiente acción:** revisión y autorización del commit L5; L6 — Escrituras HTTP como
+  siguiente etapa, todavía no iniciada. No se realizan commit, push, PR ni merge ni se avanza a L6/L7.

@@ -66,6 +66,7 @@ for (const [label, override, expected] of [
   ['idtyp app aunque tenga scp', { idtyp: 'app' }],
   ['audiencia como lista', { aud: [configuration.audience] }],
   ['azp ausente', { azp: undefined }], ['exp ausente', { exp: undefined }],
+  ['azp no permitido', { azp: '99999999-9999-4999-8999-999999999999' }],
   ['nbf ausente', { nbf: undefined }], ['intervalo invertido', { nbf: epoch / 1000 + 10, exp: epoch / 1000 + 5 }],
 ]) {
   test(`rechaza ${label}`, async () => {
@@ -83,6 +84,20 @@ test('firma y payload alterados se rechazan sin confiar en sus claims', async ()
   await rejectsIdentity(h.validator.validateAuthorization(`Bearer ${payload.join('.')}`), payload.join('.'));
   const attacker = await signedToken({}, {}, secondKey.privateKey);
   await rejectsIdentity(h.validator.validateAuthorization(`Bearer ${attacker}`), attacker);
+});
+
+test('clientes permitidos: configuración obligatoria, copia inmutable y normalización GUID', async () => {
+  for (const allowedClientIds of [undefined, [], ['*'], [null], 'any', Array(101).fill(clientId)]) {
+    assert.throws(() => validateConfiguration({ ...configuration, allowedClientIds }), IdentityConfigurationError);
+  }
+  const input = { ...configuration, allowedClientIds: [clientId.toUpperCase(), clientId] };
+  const config = validateConfiguration(input);
+  input.allowedClientIds[0] = '99999999-9999-4999-8999-999999999999';
+  assert.deepEqual(config.allowedClientIds, [clientId]);
+  assert.ok(Object.isFrozen(config.allowedClientIds));
+  const h = harness();
+  const token = await signedToken({ azp: clientId.toUpperCase() });
+  assert.equal((await h.validator.validateAuthorization(`Bearer ${token}`)).clientId, clientId);
 });
 
 test('rechaza none, HMAC y ES256 sin consultar claves', async () => {

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "PAI Digital F2: diagnóstico local y contratos técnicos L2",
-  "main": ".local-build/functions/health.js",
+  "main": ".local-build/functions/index.js",
   "engines": {
     "node": "24.x"
   },

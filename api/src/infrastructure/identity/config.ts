@@ -8,6 +8,7 @@ export interface IdentityConfiguration {
   readonly jwksUrl: string;
   readonly tokenVersion: '2.0';
   readonly clockToleranceSeconds: number;
+  readonly allowedClientIds: readonly string[];
 }
 
 export interface ValidatedConfiguration extends IdentityConfiguration {
@@ -32,6 +33,8 @@ export function validateConfiguration(input: IdentityConfiguration): Readonly<Va
       || ['openid', 'profile', 'email', 'offline_access'].includes(input.requiredScope)
       || input.tokenVersion !== '2.0' || !Number.isInteger(input.clockToleranceSeconds)
       || input.clockToleranceSeconds < 0 || input.clockToleranceSeconds > 60
+      || !Array.isArray(input.allowedClientIds) || input.allowedClientIds.length === 0
+      || input.allowedClientIds.length > 100 || !input.allowedClientIds.every(isGuid)
       || input.audience.toLowerCase() === '00000003-0000-0000-c000-000000000000') {
     throw new IdentityConfigurationError();
   }
@@ -45,5 +48,6 @@ export function validateConfiguration(input: IdentityConfiguration): Readonly<Va
     tenantId, audience: input.audience.toLowerCase(), requiredScope: input.requiredScope,
     metadataUrl: input.metadataUrl, jwksUrl: input.jwksUrl, tokenVersion: '2.0',
     clockToleranceSeconds: input.clockToleranceSeconds, issuer: `${base}/v2.0`,
+    allowedClientIds: Object.freeze([...new Set(input.allowedClientIds.map(id => id.toLowerCase()))]),
   });
 }

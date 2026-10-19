@@ -23,7 +23,7 @@ async function scenario(run) {
   }
 }
 
-test('la estructura actual respeta los límites L1-L4B', () => checkBoundaries());
+test('la estructura actual respeta los límites L1-L5', () => checkBoundaries());
 
 test('agregar un fixture bajo src bloquea la compilación', () => scenario(async (directory) => {
   await mkdir(path.join(directory, 'src', 'fixtures'));
@@ -94,4 +94,21 @@ test('la autorización no puede acceder directamente a memoria', () => scenario(
 test('los puertos L2 no pueden depender de la autorización', () => scenario(async (directory) => {
   await writeFile(path.join(directory, 'src', 'application', 'ports', 'clock.ts'), 'import "../authorization/service.js";');
   await assert.rejects(checkBoundaries(directory), /puertos no deben depender/);
+}));
+
+test('el controlador L5 no puede importar memoria directamente', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'fichas.ts'), 'import "../infrastructure/memory/unitOfWork.js";');
+  await assert.rejects(checkBoundaries(directory), /no debe activar el adaptador/);
+}));
+test('el controlador L5 no puede importar validación concreta ni claves', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'fichas.ts'), 'import "../infrastructure/identity/validator.js";');
+  await assert.rejects(checkBoundaries(directory), /no debe conectarse a HTTP/);
+}));
+test('health no puede activar las consultas ni la composición L5', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'http', 'health.ts'), 'import "../composition/queries.js";');
+  await assert.rejects(checkBoundaries(directory), /composición L5 solo/);
+}));
+test('las consultas de aplicación no pueden depender de Azure Functions', () => scenario(async (directory) => {
+  await writeFile(path.join(directory, 'src', 'application', 'queries', 'readFicha.ts'), 'import type { HttpRequest } from "@azure/functions";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
 }));
