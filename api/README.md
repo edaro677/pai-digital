@@ -1,12 +1,45 @@
-# API PAI — F2 / L1 local, contratos L2, memoria L3 e identidad L4-A
+# API PAI — F2 / L1 local, contratos L2, memoria L3, identidad L4-A y autorización L4-B
 
-Proyecto independiente del frontend. Único contrato: `GET /api/poc/health`, JSON estático,
-sin datos institucionales, identidad simulada, permisos de negocio ni integraciones.
+Proyecto independiente del frontend. Único endpoint HTTP: `GET /api/poc/health`, JSON estático,
+sin datos institucionales, identidad simulada ni integración de autenticación o autorización.
 L2 define entidades, errores y puertos: [L2_Modelo_Contratos.md](./L2_Modelo_Contratos.md).
 L3 implementa memoria volátil solo para uso técnico y pruebas, sin conectarla a HTTP:
 [L3_Persistencia_Memoria.md](./L3_Persistencia_Memoria.md).
 L4-A añade una biblioteca aislada de verificación JWT Entra v2, sin integrarla con rutas:
-[L4A_Identidad_Entra.md](./L4A_Identidad_Entra.md). No se implementan L4-B ni etapas posteriores.
+[L4A_Identidad_Entra.md](./L4A_Identidad_Entra.md).
+L4-B está implementada en el commit `8914e94`: servicio aislado de autorización por ficha y
+capacidades, sin integración HTTP: [L4B_Autorizacion_Fichas.md](./L4B_Autorizacion_Fichas.md).
+El cierre reportó **132 pruebas aprobadas, 0 fallidas**, para la suite completa L1–L4-B;
+es un resultado histórico, no una nueva ejecución por esta sincronización documental.
+
+**L5 — Consultas HTTP autenticadas permanece pendiente.** Todavía no existen endpoints
+HTTP autenticados para operaciones funcionales. Las bibliotecas L4-A/L4-B no están
+conectadas al host ni al frontend; health conserva su diagnóstico local anónimo.
+
+## Autorización L4-B y límites pendientes
+
+`FichaAuthorizationService` resuelve el usuario por `tenantId + objectId`, verifica usuario
+habilitado, ficha existente y asignación habilitada con capacidad explícita. Deniega por
+defecto, sin inferir permisos por roles Microsoft 365, scopes o dependencia compartida.
+`poc:read` y `poc:edit-report` son capacidades sintéticas independientes, no roles
+institucionales aprobados. No existe caché de decisiones de autorización.
+
+`decide()` y `requireAllowed()` reciben TransactionContext para que la comprobación y
+la futura escritura ocurran dentro de la misma unidad de trabajo. Las pruebas sintéticas
+verifican acceso cruzado, escalamiento, revocación, rollback e integración L4-A → L4-B.
+No se implementó un caso de uso funcional de escritura ni un endpoint para ello.
+
+La política temporal institucional de asignaciones sigue pendiente. L2 no define si los
+extremos validFrom/validUntil son inclusivos o exclusivos; el servicio exige una
+AssignmentValidityPolicy explícita y no incluye una implementación predeterminada en src.
+Solo las pruebas usan el supuesto `validFrom <= instante < validUntil`, con null sin fin
+superior. Antes de integrar endpoints debe acordarse una política confiable revisada;
+la convención de laboratorio no constituye una decisión institucional.
+
+La integración con Entra ID real también permanece pendiente: registro/configuración de
+API y scope, adquisición de access tokens dirigidos a la API desde MSAL y pruebas contra
+el tenant requieren autorización posterior. Los tokens, claves y datos usados en pruebas
+son sintéticos; no acreditan integración institucional ni autorización de producción.
 
 ## Requisitos y ejecución
 
@@ -76,9 +109,10 @@ Los logs de esta prueba están en `.azurite/`, ignorados por Git. No contienen c
 - `src/infrastructure/memory`: siete repositorios y UnitOfWork volátil; sin I/O ni autorización.
 - `src/infrastructure/identity`: configuración, Bearer, JWT, JWKS y normalización; sin repositorios ni HTTP.
 - `src/domain`: entidades técnicas sintéticas, tipos nominales, errores y validadores de representación.
-- `src/application/ports`: contratos de repositorio, unidad transaccional y reloj; sin servicios.
+- `src/application/ports`: contratos de repositorio, unidad transaccional, reloj e identidad.
+- `src/application/authorization`: servicio L4-B por ficha/capacidad, independiente de HTTP y adaptadores.
 - `scripts`: compilación local, límites de alcance y arranque con dirección fija.
-- `tests`: contrato técnico, rechazo de alojamiento y pruebas negativas de límites.
+- `tests`: contratos, defensas locales, memoria transaccional, identidad y autorización sintéticas, y pruebas negativas de límites.
 
 ## Separación y prevención de publicación
 
@@ -87,7 +121,9 @@ configuración ni MSAL del frontend. `.local-build/` contiene únicamente compil
 ejecución local, ignorados por Git; no se genera ZIP ni paquete de despliegue.
 
 `check:boundaries` admite las tres fuentes L1, seis fuentes de dominio/puertos L2 y cuatro
-fuentes del adaptador L3, un puerto nuevo y seis módulos de identidad L4-A.
+fuentes del adaptador L3, un puerto nuevo y seis módulos de identidad L4-A, y el servicio
+de autorización L4-B. Impide activar autorización desde HTTP o adaptadores, importar
+memoria directamente desde el servicio y hacer depender los puertos del servicio.
 Los fixtures solo existen bajo tests, fuera del build.
 Rechaza fuentes adicionales, imports fuera del alcance y carga dinámica; el núcleo no
 puede importar HTTP, infraestructura ni Azure Functions. Incorporar fixtures o una identidad local
@@ -106,9 +142,11 @@ rechazan alojamiento, aunque la conexión del emulador esté correctamente confi
 
 ## Pruebas y límites
 
-Las pruebas usan `node:test`; `npm test` recompila primero para evitar código obsoleto. Cubren respuesta JSON,
-no reflexión de entrada y fallos de las defensas locales/de publicación. No validan Entra,
-SQL, Graph, SharePoint ni autorización por ficha. Todo ello queda fuera de L1.
+Las pruebas usan `node:test`; `npm test` recompila primero para evitar código obsoleto.
+Las de L1 cubren respuesta JSON, no reflexión de entrada y fallos de las defensas locales/de
+publicación. La suite posterior incluye memoria, validación JWT y autorización por ficha
+con datos sintéticos. No valida integración real con Entra ID, SQL, Graph o SharePoint,
+ni endpoints HTTP funcionales autenticados todavía inexistentes.
 
 Las pruebas de almacenamiento comprueban eliminación de configuración heredada sin
 mutar el entorno padre, conexión exclusiva al emulador, rechazo de configuraciones mixtas
@@ -118,7 +156,7 @@ El build incluye `npm run check:contracts`: compila los contratos y sus pruebas 
 con `tsc --noEmit`, sin tipos Node ni DOM. Las pruebas negativas usan `@ts-expect-error`
 para detectar cruces de IDs, omisión de versión, mutaciones y operaciones no declaradas.
 Las pruebas de comportamiento L2 cubren representaciones exactas y errores diferenciados;
-no pretenden demostrar transacciones, permisos ni persistencia todavía inexistentes.
+las garantías de memoria transaccional y autorización se prueban separadamente en L3/L4-B.
 
 Las pruebas L4-A generan claves efímeras, firman tokens sintéticos y verifican configuración,
 firma, claims, caché y rotación sin red. No equivalen a validación en el tenant institucional.
