@@ -244,7 +244,7 @@ requisitos de aceptación del futuro adaptador, no resultados acreditados por es
 
 ## Estado vigente — L7-B2, 20/10/2026
 
-L7-B2 está implementada y pendiente de revisión/commit, sobre HEAD 2543c0a.
+L7-B2 quedó registrada en `ba6c2b6`, sobre la base histórica `2543c0a`.
 Por autorización expresa se adopta la alternativa B: representaciones acotadas y futuro
 SQL convencional. Esta entrada sustituye las recomendaciones de representación L7-B1
 anteriores, conservadas como historial: ya no se mantienen tokens ilimitados ni fechas
@@ -262,3 +262,25 @@ Suite ejecutada: 248 aprobadas, 0 fallidas, 0 omitidas (214 previas + 34 nuevas)
 Build API, contratos, fronteras y frontend correctos; aviso frontend previo >500 kB.
 No se arrancó el host ni se probó Entra real. No hay SQL, migraciones, dependencias nuevas,
 infraestructura o cambios de frontend. Detalle: [L7B2_Representacion_SQL.md](./L7B2_Representacion_SQL.md).
+
+## Estado vigente — L7-B4, 20/10/2026
+
+L7-B3 concluyó como diseño de la conversación. L7-B4 incorpora únicamente artefactos
+de migración inicial, verificaciones estáticas y documentación; pendiente de revisión/commit.
+Detalle: [migrations/README.md](./migrations/README.md).
+
+Hay ocho tablas funcionales convencionales y una tabla técnica de historial. Se conserva
+la alternativa B: sin TokenValues ni bloqueos especiales por digest. SHA-256 identifica
+artefactos y cambios de catálogo, y continúa como huella idempotente de L6-B.
+No se implementó SQL en ejecución: no hay adaptador, controlador nuevo, conexión,
+base de datos, instalación, carga de fixtures o ejecución de up/verify/down.
+
+Los scripts están bloqueados sin confirmaciones explícitas y solo admiten un destino
+SQL Server local sintético. El esquema es compatible con SQL Server 2022/Azure SQL,
+pero el procedimiento de ejecución Azure permanece deshabilitado y requiere autorización.
+La reversión solo acepta un esquema íntegro y vacío, sin miembros en el rol API.
+
+Suite L1–L7-B4: 260 aprobadas, 0 fallidas/omitidas: 248 anteriores + 12 pruebas estáticas.
+El pretest compila API, contratos y fronteras. El build frontend sigue siendo obligatorio.
+La inspección estática no acredita sintaxis compilada, restricciones, permisos efectivos,
+durabilidad, concurrencia o rollback del motor: esas pruebas quedan pendientes.

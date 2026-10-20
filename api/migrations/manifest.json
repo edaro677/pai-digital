@@ -1,0 +1,42 @@
+{
+  "formatVersion": 1,
+  "migrationId": "0001_initial",
+  "baseCommit": "ba6c2b6",
+  "status": "static-only-not-executed",
+  "target": {
+    "sqlServer": "2022+",
+    "azureSqlSchemaCompatible": true,
+    "executionPolicy": "local-synthetic-only"
+  },
+  "functionalTables": [
+    "InstitutionalUsers",
+    "Dependencies",
+    "Fichas",
+    "AccessAssignments",
+    "Activities",
+    "Reports",
+    "AuditEvents",
+    "IdempotencyRecords"
+  ],
+  "technicalHistory": "pai_meta.SchemaMigrations",
+  "checksum": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "lineEndings": "LF",
+    "scope": "exact file bytes; no normalization"
+  },
+  "files": {
+    "up.sql": {
+      "path": "0001_initial/up.sql",
+      "sha256": "29634f596d609ea6b031ed50f1641180d4dd0f2d6fd40ff3357e60a184b1d35f"
+    },
+    "verify.sql": {
+      "path": "0001_initial/verify.sql",
+      "sha256": "f78cd96c0f31f1b04d34e1b453d483a4433557c7651e41ec95be9faaef2bf9d5"
+    },
+    "down.development.sql": {
+      "path": "0001_initial/down.development.sql",
+      "sha256": "c059d2b65bd06aabb94826d04b0a54c9aa0223e074b6a65b93615bea0acb153e"
+    }
+  }
+}

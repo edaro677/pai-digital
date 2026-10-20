@@ -1,12 +1,12 @@
 # PAI Digital — Documento maestro de continuidad técnica
 
-**Corte:** 19 de octubre de 2026
+**Corte:** 20 de octubre de 2026
 
 **Organización:** Fundación Universitaria María Cano (FUMC)
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L1–L6-B completadas en alcance técnico local y registradas en Git. L5 corresponde a `f287707` y L6-B a `2543c0a`. L6-A aprobada como diseño; L7-A concluida como diseño preliminar y L7-B1 en preparación técnica/documental. No hay adaptador SQL implementado ni autorización de infraestructura.
+**Estado:** F2 en ejecución; L7-B2 registrada en `ba6c2b6`. L7-B3 concluyó como diseño; L7-B4 implementa solo migración inicial en archivos, verificaciones estáticas y documentación, pendiente de revisión/commit. La alternativa B es vigente. No hay adaptador SQL implementado ni ejecución de migraciones o infraestructura autorizada.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `2543c0a` — `feat(api): implementa escrituras HTTP seguras de reportes`. L6-B parte de `f287707` y quedó registrada en `2543c0a`.
+- Último commit confirmado mediante Git: `ba6c2b6` — `refactor(api): acota contratos L2 para persistencia SQL convencional`. L6-B permanece registrada en `2543c0a` y L7-B2 quedó registrada en `ba6c2b6`.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -75,6 +75,9 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L6-B — Escrituras HTTP seguras | **Completada en alcance técnico local** | `2543c0a` | POST/PATCH/GET de reporte; 214 pruebas aprobadas; Functions/Azurite, seis operaciones registradas y 18 peticiones HTTP reales validadas |
 | L7-A — Diseño de persistencia duradera | Diseño concluido; recomendación preliminar | — | Informe de alternativas y estrategia SQL, sin implementación |
 | L7-B1 — Preparación técnica SQL | Análisis y sincronización documental; pendiente de revisión | — | Decisiones de representación, compatibilidad L2 y esquema preliminar; sin migraciones |
+| L7-B2 — Representaciones acotadas | Completada y registrada | `ba6c2b6` | 248 pruebas; alternativa B aprobada y contratos ajustados |
+| L7-B3 — Diseño SQL | Diseño concluido | — | Ocho tablas y estrategia revisadas en conversación; sin ejecución |
+| L7-B4 — Migración inicial en archivos | Implementada; pendiente de revisión/commit | — | up/verify/down, manifiesto e historial técnico; solo comprobación estática |
 | Regresión integral L1–L6-B | Requisito de aceptación transversal para L7 | — | Debe conservarse al incorporar y validar el adaptador SQL |
 
 **Último `git log -5 --oneline` confirmado localmente:**
@@ -228,12 +231,12 @@ En cada actualización:
 
 ## 10. Estado al corte y acción inmediata
 
-**Corte actual:** L5 registrada en `f287707` y L6-B en `2543c0a`, ambas completadas en
-alcance técnico local. L7-A concluyó como diseño preliminar; L7-B1 prepara las decisiones
-SQL y sincroniza únicamente documentación. Esperar revisión y autorización antes de
-L7-B2, instalaciones, conexiones, migraciones o implementación. La regresión integral
-sigue siendo requisito de aceptación. Los registros previos conservan el estado
-histórico de su fecha, incluyendo los cierres antes de conocer sus respectivos commits.
+**Corte actual:** L7-B2 registrada en `ba6c2b6`; L7-B3 concluida como diseño y L7-B4
+implementada exclusivamente en archivos y controles estáticos, pendiente de revisión/commit.
+No se ha ejecutado SQL ni creado base o adaptador. Esperar autorización para ejecución
+local e integración posteriores. La regresión integral sigue siendo requisito de aceptación.
+Los registros previos conservan el estado histórico de cada fecha, incluidos los cierres
+antes de conocer sus respectivos commits y las alternativas posteriormente descartadas.
 
 ### Antecedente del corte tras L4-B
 
@@ -410,6 +413,9 @@ etapa todavía no autorizada describen el cierre histórico previo al registro d
 
 ### Corte vigente — L7-B2 implementada, pendiente de revisión/commit — 20/10/2026
 
+Nota de trazabilidad posterior L7-B4: L7-B2 quedó registrada en `ba6c2b6`.
+El encabezado y el relato siguiente conservan el corte previo al commit, no el estado actual.
+
 Esta entrada actualiza el estado de los cortes anteriores sin borrar su historia.
 Rama verificada: feature/arquitectura-persistencia-pai; HEAD sigue en 2543c0a (L6-B).
 L7-A/L7-B1 concluyeron como análisis; L7-B2 implementa únicamente representaciones y pruebas.
@@ -445,3 +451,40 @@ No existe commit nuevo de L7-B2 y no se autoriza SQL, infraestructura o desplieg
   pendientes de definición institucional. La regresión integral sigue siendo obligatoria.
 - **Siguiente paso:** revisión del usuario y autorización posterior antes de commit o
   implementación del adaptador SQL. No se realiza commit, push, PR, merge ni despliegue.
+
+### Registro L7-B3 / L7-B4 — Migración inicial, solo artefactos — 20/10/2026
+
+- **Base verificada:** rama feature/arquitectura-persistencia-pai, HEAD `ba6c2b6`, árbol
+  inicial limpio. L7-B2 está finalizada/registrada; se corrige la referencia del corte vigente
+  conservando los relatos anteriores. L7-B3 es el diseño de la conversación, sin archivo
+  L7-B3 adicional asumido ni migraciones ejecutadas en esa etapa.
+- **Decisión vigente:** alternativa B, ocho tablas convencionales con representaciones
+  L2 acotadas, PK/FK/UNIQUE/CHECK y versiones. No se implementa TokenValues ni bloqueo
+  por digest. Los hashes son de artefactos/catálogo, no sustituyen igualdad de IDs.
+- **Implementado L7-B4:** api/migrations/README.md, manifest.json, .gitattributes local
+  y 0001_initial/up.sql, verify.sql, down.development.sql; pruebas estáticas en
+  api/tests/migrations-static.test.mjs. No se cambia código de aplicación o contratos.
+- **Modelo:** ocho tablas funcionales; siete RV; InsertionOrder en Activities y
+  AccessAssignments; once FK NO ACTION; UNIQUE tenant/objeto, actividad/periodo y ámbito
+  idempotente. Cantidades textuales, datetime2(3) y snapshots históricos JSON preservados.
+  La validación completa Unicode/UTC/entidades y autorización seguirá en el futuro adaptador.
+- **Historial técnico:** pai_meta.SchemaMigrations agrupa versión, fecha UTC y checksums
+  de scripts/catálogo. Se prefiere a propiedades extendidas por simplicidad de consulta y
+  verificación; no constituye entidad funcional adicional. LF se fija para hashes estables.
+- **Seguridad:** rol técnico API sin usuarios/logins ni credenciales, SELECT acotado,
+  INSERT y UPDATE por responsabilidad/columna, sin DELETE/ALTER ni acceso al historial.
+  Principal de migración separado. Las guardas exigen contexto explícito, destino sintético
+  local y loopback; Azure queda bloqueado aunque el DDL use características compatibles.
+- **Reversión:** exige confirmación adicional, catálogo/historial íntegros, rol sin miembros
+  y ocho tablas vacías. No hay override para borrar datos; errores revierten y se relanzan.
+- **Validación estática:** 260 pruebas aprobadas, 0 fallidas/omitidas: 248 previas y 12
+  nuevas. El pretest ejecuta build API, contratos TypeScript y fronteras. No es compilación
+  T-SQL ni prueba de restricciones o permisos del motor. Frontend y git diff se verifican
+  también al cierre; el aviso previo de bundle >500 kB no es un cambio de esta etapa.
+- **Pendiente:** ejecutar scripts en entorno autorizado, comprobar restricciones/permisos,
+  drift del catálogo, Unicode, fechas/RV, concurrencia, rollback/desconexión y recuperación;
+  crear adaptador/controlador SQL solo con autorización posterior. Se mantienen pendientes
+  funcionales de Planeación, Entra real, retención y evidencias.
+- **Límites/cierre:** no se instala, conecta o ejecuta SQL, crea base, migra datos ni
+  cambia frontend/MSAL/dependencias. No se realiza commit, push, PR, merge o despliegue.
+  Esperar revisión y autorización antes de registrar o ampliar el alcance.
