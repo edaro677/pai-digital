@@ -1,0 +1,42 @@
+{
+  "formatVersion": 1,
+  "revision": "r1",
+  "migrationId": "0001_initial",
+  "reason": "SQL Server error 468: Kind y sys.objects.type requieren colacion BIN2 explicita en EXCEPT; sin cambios DDL ni historial.",
+  "originalManifest": {
+    "path": "../../../manifest.json",
+    "sha256": "d6bd7ca19887c69a0d4b44dea57dbb762be8a45c3816475af66bbaf1966b788c"
+  },
+  "originalFiles": {
+    "up.sql": {
+      "path": "0001_initial/up.sql",
+      "sha256": "29634f596d609ea6b031ed50f1641180d4dd0f2d6fd40ff3357e60a184b1d35f"
+    },
+    "verify.sql": {
+      "path": "0001_initial/verify.sql",
+      "sha256": "f78cd96c0f31f1b04d34e1b453d483a4433557c7651e41ec95be9faaef2bf9d5"
+    },
+    "down.development.sql": {
+      "path": "0001_initial/down.development.sql",
+      "sha256": "c059d2b65bd06aabb94826d04b0a54c9aa0223e074b6a65b93615bea0acb153e"
+    }
+  },
+  "files": {
+    "verify.sql": {
+      "path": "verify.sql",
+      "sha256": "ba5087bc5770d926f51d8131e8d9df2217f7e4fc20cc5cd75b9aba33104851c0"
+    },
+    "down.development.sql": {
+      "path": "down.development.sql",
+      "sha256": "c36014e553b2df40634742a158156663c4adb681837fa80859d11a8a20317861"
+    }
+  },
+  "executionPolicy": "local-synthetic-only",
+  "historyPolicy": "compare-original-hashes-without-writing",
+  "checksum": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "lineEndings": "LF",
+    "scope": "exact file bytes; no normalization"
+  }
+}

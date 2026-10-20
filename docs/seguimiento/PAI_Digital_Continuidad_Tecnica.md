@@ -6,7 +6,7 @@
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L7-B2 registrada en `ba6c2b6`. L7-B3 concluyó como diseño; L7-B4 implementa solo migración inicial en archivos, verificaciones estáticas y documentación, pendiente de revisión/commit. La alternativa B es vigente. No hay adaptador SQL implementado ni ejecución de migraciones o infraestructura autorizada.
+**Estado:** F2 en ejecución; L7-B4 registrada en dc72d99. L7-B5-B2-R2 implementa auxiliares R1 y verifica con éxito la migración original aplicada en pai_poc_dev local. Historial, catálogo y tablas vacías preservados. Pendiente de revisión/commit; no existe adaptador SQL ni autorización productiva.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `ba6c2b6` — `refactor(api): acota contratos L2 para persistencia SQL convencional`. L6-B permanece registrada en `2543c0a` y L7-B2 quedó registrada en `ba6c2b6`.
+- Último commit confirmado mediante Git: `dc72d99` — `feat(api): prepara migracion SQL inicial versionada`. L6-B permanece en `2543c0a` y L7-B2 en `ba6c2b6`.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -77,7 +77,8 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L7-B1 — Preparación técnica SQL | Análisis y sincronización documental; pendiente de revisión | — | Decisiones de representación, compatibilidad L2 y esquema preliminar; sin migraciones |
 | L7-B2 — Representaciones acotadas | Completada y registrada | `ba6c2b6` | 248 pruebas; alternativa B aprobada y contratos ajustados |
 | L7-B3 — Diseño SQL | Diseño concluido | — | Ocho tablas y estrategia revisadas en conversación; sin ejecución |
-| L7-B4 — Migración inicial en archivos | Implementada; pendiente de revisión/commit | — | up/verify/down, manifiesto e historial técnico; solo comprobación estática |
+| L7-B4 — Migración inicial en archivos | Registrada | `dc72d99` | up/verify/down originales y manifiesto inmutables; validación estática histórica |
+| L7-B5-B2-R2 — Verificador auxiliar R1 | Verificación local exitosa; pendiente de revisión/commit | — | 269 pruebas; verify R1 correcto; historial y datos intactos; down no ejecutado |
 | Regresión integral L1–L6-B | Requisito de aceptación transversal para L7 | — | Debe conservarse al incorporar y validar el adaptador SQL |
 
 **Último `git log -5 --oneline` confirmado localmente:**
@@ -231,12 +232,11 @@ En cada actualización:
 
 ## 10. Estado al corte y acción inmediata
 
-**Corte actual:** L7-B2 registrada en `ba6c2b6`; L7-B3 concluida como diseño y L7-B4
-implementada exclusivamente en archivos y controles estáticos, pendiente de revisión/commit.
-No se ha ejecutado SQL ni creado base o adaptador. Esperar autorización para ejecución
-local e integración posteriores. La regresión integral sigue siendo requisito de aceptación.
-Los registros previos conservan el estado histórico de cada fecha, incluidos los cierres
-antes de conocer sus respectivos commits y las alternativas posteriormente descartadas.
+**Corte actual:** L7-B4 registrada en dc72d99; up original aplicado en la base sintética
+local pai_poc_dev. El verify original falló por colaciones; R2 incorpora auxiliares R1 y
+su verify fue exitoso sin alterar historial ni datos. Pendiente de revisión/commit.
+No hay adaptador SQL ni autorización para producción, nuevas bases o reversión.
+Los registros siguientes conservan los hechos y pendientes de sus fechas históricas.
 
 ### Antecedente del corte tras L4-B
 
@@ -488,3 +488,43 @@ No existe commit nuevo de L7-B2 y no se autoriza SQL, infraestructura o desplieg
 - **Límites/cierre:** no se instala, conecta o ejecuta SQL, crea base, migra datos ni
   cambia frontend/MSAL/dependencias. No se realiza commit, push, PR, merge o despliegue.
   Esperar revisión y autorización antes de registrar o ampliar el alcance.
+
+### Registro L7-B5-B2-R2 — Verificador auxiliar R1 — 20/10/2026
+
+- **Base:** feature/arquitectura-persistencia-pai, HEAD dc72d99, Git inicialmente limpio.
+  Instancia PAIPOC local observada operativa: Developer 16.0.1000.6, autenticación Windows
+  y Shared Memory. Su instalación/configuración son antecedentes; R2 no los modifica.
+- **Antecedente B2:** base pai_poc_dev y up original creados/aplicados por autorización
+  previa. verify original falló con 468 al comparar Kind Modern_Spanish_CI_AS con
+  sys.objects.type Latin1_General_CI_AS_KS_WS. R1 de diagnóstico concluyó como diseño.
+- **Implementación R2:** api/migrations/verifiers/0001_initial/r1/{manifest.json,verify.sql,
+  down.development.sql}; descriptor con hashes históricos y auxiliares. Solo se corrige
+  Kind/o.type con COLLATE Latin1_General_100_BIN2; se agregan guardas R1 separadas del
+  contexto histórico. Se conserva byte a byte el resto del algoritmo del verificador,
+  incluida serialización, huella, transacción, restricciones y seguridad de down.
+- **Compatibilidad:** no se edita manifiesto raíz ni originales 0001_initial. Las claves
+  migration.* siguen representando la terna original, validada explícitamente y contra
+  el historial. verifier.* identifica revisión/hashes auxiliares verificados externamente.
+  No hay fila R1 ni actualización de SchemaMigrations; no es una nueva migración DDL.
+- **Pruebas:** 269 API aprobadas, cero fallidas/omitidas (260 previas + nueve nuevas).
+  Contratos, TypeScript y fronteras aprobados. Frontend compila con aviso previo >500 kB.
+  Se ajustó un selector de una prueba nueva antes de ejecutar SQL; no un script del motor.
+- **SQL real:** exclusivamente verify R1, tras pruebas estáticas y validación de archivos,
+  mediante sqlcmd -S lpc:.\PAIPOC -E -d pai_poc_dev -b -V 11 -l 10 -t 60 -r 1,
+  contexto y script en la misma conexión. Código 0, 0001_initial / verified, 494 ms;
+  @@TRANCOUNT=0 y XACT_STATE()=0. No se reejecuta up ni ningún down.
+- **Integridad antes/después:** snapshot idéntico de historial, catálogo y ocho recuentos
+  funcionales, todos cero. Una fila 0001_initial con sus tres hashes y fecha original
+  2026-10-20T21:13:22.747 UTC. Huella de catálogo conservada:
+  822fb17b1d66a55e97217c30829d045b03de808d890972078f35f45516764720.
+- **Documentación/pruebas:** README de migraciones y este maestro actualizados; prueba
+  histórica de inmutabilidad y ocho pruebas R1. No cambia API README, frontend, contratos,
+  MSAL, dependencias, SQL de aplicación ni configuración del motor.
+- **Estado:** L7-B5-B2 supera creación/aplicación original y verificación local mediante R1;
+  recomendar cierre de ese alcance sujeto a revisión. R2 pendiente de commit, sin inventar
+  hash. No es validación productiva ni implementación de persistencia SQL de la API.
+- **Pendiente:** down R1 solo preparado, sin ejecución; permisos efectivos, concurrencia,
+  rollback, recuperación, instalación nueva y otras colaciones requieren etapas autorizadas.
+  Conservados los pendientes institucionales de Planeación y la regresión integral.
+- **Restricciones cumplidas:** sin nuevas bases o registros funcionales, alteración de
+  historial, configuraciones, commit, push, PR, merge o despliegue. Esperar revisión.

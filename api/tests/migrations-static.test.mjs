@@ -143,3 +143,12 @@ test('migracion: LF fijado localmente para no invalidar checksums en Windows', a
   assert.match(attributes, /^\*\.sql text eol=lf$/m);
   assert.match(attributes, /^\*\.json text eol=lf$/m);
 });
+
+test('migracion: terna historica aplicada permanece inmutable tras R1', () => {
+  const applied = {
+    'up.sql': '29634f596d609ea6b031ed50f1641180d4dd0f2d6fd40ff3357e60a184b1d35f',
+    'verify.sql': 'f78cd96c0f31f1b04d34e1b453d483a4433557c7651e41ec95be9faaef2bf9d5',
+    'down.development.sql': 'c059d2b65bd06aabb94826d04b0a54c9aa0223e074b6a65b93615bea0acb153e',
+  };
+  for (const name of names) assert.equal(createHash('sha256').update(files[name], 'utf8').digest('hex'), applied[name]);
+});
