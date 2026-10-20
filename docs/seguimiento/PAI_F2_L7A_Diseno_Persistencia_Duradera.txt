@@ -1,0 +1,423 @@
+PAI DIGITAL — F2 / L7-A: DISEÑO DE PERSISTENCIA DURADERA
+Informe de análisis técnico
+
+Esta copia conserva el informe de la revisión previa. Las referencias al árbol
+Git limpio corresponden a esa revisión, antes de crear este archivo de texto.
+La exportación no modifica el código ni actualiza los documentos existentes.
+
+Recomiendo Azure SQL Database como candidato para persistencia duradera y SQL
+Server local como primer entorno de validación de L7-B. Mantendría memoria para
+pruebas rápidas y no incorporaría SQLite como paso intermedio: obligaría a
+mantener otro adaptador sin demostrar las garantías específicas que necesitamos
+en SQL Server.
+
+La recomendación es preliminar y está condicionada a resolver compatibilidad de
+tipos, probar concurrencia entre conexiones y aprobar posteriormente
+infraestructura, costos y operación.
+
+1. VERIFICACIÓN Y DIAGNÓSTICO ACTUAL
+
+Comprobado durante la revisión:
+- Rama: feature/arquitectura-persistencia-pai.
+- HEAD: 2543c0a.
+- Commit: feat(api): implementa escrituras HTTP seguras de reportes.
+- git status --short: vacío.
+- L6-B está registrada en ese commit, con sus 15 archivos.
+
+La separación actual permite sustituir persistencia sin reescribir toda la API:
+
+Componente | Independencia del motor | Adaptación necesaria
+Entidades, identificadores y errores L2 | Independientes | Revisar representación física y límites.
+Interfaces de repositorio y UnitOfWork | Independientes | Implementar sus garantías en SQL.
+Identidad L4-A | Independiente | Ningún cambio por incorporar SQL.
+Autorización L4-B | Usa repositorios del contexto | Sus lecturas deben pertenecer a la transacción SQL.
+Consultas L5 y servicio L6-B | Usan contratos L2 | Ejecutar pruebas contra ambos adaptadores.
+Controladores HTTP | Independientes | Conservar DTO y respuestas controladas.
+Composición | Actualmente construye memoria | Seleccionar explícitamente el adaptador.
+Guardas y pruebas | Conocen el alcance actual | Admitir SQL y añadir pruebas de integración.
+
+La composición actual crea una memoria vacía y mantiene bloqueada la política
+temporal. Incorporar una base duradera no debe habilitar automáticamente
+asignaciones, datos institucionales ni permisos.
+
+Referencias del repositorio:
+- api/src/composition/queries.ts:34.
+- api/src/application/reports/service.ts:44.
+
+2. COMPARACIÓN DE ALTERNATIVAS
+
+Criterio | Azure SQL Database | SQL Server local | SQLite local | Memoria actual
+Functions y TypeScript | Adecuado mediante controlador SQL | Adecuado para desarrollo | Posible con adaptador específico | Ya implementado.
+Durabilidad | Servicio persistente | Disco y respaldo administrados por el equipo | Archivo persistente | Ninguna tras reinicio.
+Transacciones | Adecuadas para las ocho entidades | Mismo enfoque relacional | Transacciones, con concurrencia diferente | Copia y confirmación por instancia.
+Múltiples instancias API | Coordinación mediante la base | Coordinación entre conexiones | No recomendable como archivo compartido entre hosts | Estados independientes.
+Unicidad y relaciones | Índices únicos y FK | Índices únicos y FK | Disponibles, requieren configuración y pruebas | Validaciones propias.
+Versión optimista | rowversion o token explícito | Igual enfoque | Token mantenido por adaptador | UUID.
+Idempotencia y auditoría | Persistentes y transaccionales | Persistentes y transaccionales | Viables localmente | Volátiles.
+Migraciones | Necesarias y controladas | Reproducibles para desarrollo | Otro dialecto y otra estrategia | No existen.
+Seguridad | Identidad administrada, permisos SQL y red | Credenciales/permisos y administración local | Permisos del archivo y proceso | Control del proceso.
+Costos | Cómputo, almacenamiento, respaldo, red y operación | Equipo, administración y edición/licencia aplicable | Operación local sencilla | Bajo costo inicial; no resuelve durabilidad.
+Complejidad | Media-alta | Media para comenzar | Baja inicial; aumenta al mantener dos motores | Baja, ya asumida.
+
+SQLite permite concurrencia de lectores, pero mantiene un único escritor y WAL
+exige procesos en el mismo host; no sirve para validar directamente el
+comportamiento distribuido previsto para Functions.
+Fuente: https://www.sqlite.org/wal.html
+
+Azure SQL y SQL Server permiten mantener una implementación común del adaptador.
+Microsoft documenta conexión desde Node.js mediante mssql/Tedious; habría que
+seleccionar y fijar versiones compatibles con Node 24 antes de instalar.
+Fuente: https://learn.microsoft.com/en-us/azure/azure-sql/database/azure-sql-javascript-mssql-quickstart
+
+3. ARQUITECTURA RECOMENDADA
+
+Diagrama Mermaid de la propuesta:
+
+flowchart TD
+    HTTP[Controladores HTTP] --> APP[Consultas y comandos]
+    APP --> AUTH[Autorización L4-B]
+    APP --> UOW[UnitOfWork L2]
+    AUTH --> CTX[Repositorios del mismo contexto]
+    UOW --> CTX
+    CTX --> MEM[Adaptador en memoria]
+    CTX --> SQL[Adaptador SQL]
+    SQL --> LOCAL[SQL Server de desarrollo]
+    SQL --> AZURE[Azure SQL futuro]
+
+Propuesta de organización:
+
+api/src/infrastructure/sql/
+  configuration.ts
+  pool.ts
+  unitOfWork.ts
+  session.ts
+  repositories/
+  mapping/
+  errors.ts
+
+api/migrations/
+api/tests/integration/sql/
+
+La composición compartiría una unidad de trabajo configurada entre lecturas y
+escrituras. El pool podría reutilizarse por proceso; cada transacción tendría su
+conexión reservada, sin compartirla simultáneamente entre solicitudes. Functions
+recomienda gestionar y reutilizar las conexiones para evitar agotamiento de
+recursos.
+Fuente: https://learn.microsoft.com/en-us/azure/azure-functions/manage-connections
+
+No recomiendo bindings SQL independientes para cada escritura: el servicio
+necesita controlar explícitamente una transacción que abarque autorización,
+reporte, auditoría e idempotencia.
+
+4. PROPUESTA INICIAL DE ESQUEMA RELACIONAL
+
+Es un esquema técnico de PoC, no el modelo institucional definitivo.
+
+Convenciones propuestas:
+- Id: texto opaco; no convertir automáticamente a uniqueidentifier.
+- RV: columna rowversion, expuesta como Version textual opaca.
+- Fechas: datetime2(3), tratadas explícitamente como UTC.
+- Texto descriptivo y snapshots: nvarchar(max).
+- Booleanos: bit.
+- Relaciones sin borrado en cascada.
+
+Decisión previa necesaria: utilizar nvarchar(128) para IDs, periodos y claves
+indexables encaja con los límites HTTP actuales, pero L2 admite textos sin esa
+longitud máxima. Esa elección necesita revisión explícita antes de implementar;
+no se puede imponer silenciosamente desde SQL.
+
+Tabla: InstitutionalUsers
+Columnas: Id, TenantId, DirectoryObjectId, Alias, Enabled, RV.
+Claves e índices: PK Id; UNIQUE (TenantId, DirectoryObjectId).
+
+Tabla: Dependencies
+Columnas: Id, Label, RV.
+Claves e índices: PK Id.
+
+Tabla: Fichas
+Columnas: Id, DependencyId, CycleLabel, RV.
+Claves e índices: PK; FK dependencia; índice por dependencia.
+
+Tabla: AccessAssignments
+Columnas: Id, UserId, FichaId, Capability, Enabled, ValidFrom, ValidUntil NULL, RV.
+Claves e índices: PK; FK usuario/ficha; índice (UserId, FichaId).
+
+Tabla: Activities
+Columnas: Id, FichaId, Description, RV.
+Claves e índices: PK; FK ficha; índice FichaId.
+
+Tabla: Reports
+Columnas: Id, ActivityId, PeriodKey, QuantityText NULL, Narrative, State,
+CreatedBy, CreatedAt, UpdatedBy, UpdatedAt, RV.
+Claves e índices: PK; FK actividad/autores; UNIQUE (ActivityId, PeriodKey).
+
+Tabla: AuditEvents
+Columnas: Id, ActorId, OccurredAt, CorrelationId, Action, BeforeJson NULL,
+AfterJson, referencias técnicas al objeto afectado.
+Claves e índices: PK; FK actor/objeto; índices objeto-fecha y correlación.
+
+Tabla: IdempotencyRecords
+Columnas: Id, ActorId, Operation, IdempotencyKey, RequestFingerprint, State,
+CreatedAt, CompletedAt NULL, OutcomeReportId NULL, OutcomeAuditEventId NULL,
+OutcomeReportJson NULL, RV.
+Claves e índices: PK; UNIQUE (ActorId, Operation, IdempotencyKey);
+FK actor/reporte/evento.
+
+Precisiones importantes:
+- Asignaciones: no añadir UNIQUE por usuario/ficha/capacidad. L2 permite varias
+  asignaciones; prohibirlas introduciría una restricción nueva.
+- Identificadores: usar comparación binaria compatible con la igualdad sensible
+  a mayúsculas de los contratos. No heredar una intercalación que trate claves
+  distintas como iguales.
+- Estado/capacidad/operación: restricciones CHECK exclusivamente sobre los
+  valores técnicos existentes, sin añadir estados institucionales.
+- Idempotencia: reserved exige resultado nulo; completed exige fecha, reporte,
+  evento y snapshot.
+- Auditoría: referencias al objeto derivadas del cambio tipado. Las referencias
+  polimórficas necesitan columnas/FK explícitas o validación transaccional;
+  un ID genérico no constituye una FK.
+- Snapshots JSON: validar JSON y reconstruir el tipo correspondiente. ISJSON
+  no demuestra coherencia semántica.
+- Orden: conservar el comportamiento explícito de findByIds; no confiar en el
+  orden natural de SQL. Si se necesita reproducir orden de inserción, usar
+  metadatos técnicos internos.
+
+Decimales y fechas
+
+Conservaría QuantityText como texto exacto. DecimalText admite representaciones
+que no deben convertirse automáticamente a una escala fija: "1.0" y "1.000"
+también participan de forma distinta en la huella de idempotencia.
+
+decimal(p,s) de SQL Server tiene precisión máxima 38 y una escala definida; no
+representa sin decisiones adicionales todo el contrato actual. No propongo
+float ni conversión a number.
+Fuente: https://learn.microsoft.com/en-us/sql/t-sql/data-types/decimal-and-numeric-transact-sql
+
+datetime2(3) conserva los milisegundos que exige UtcInstant. El adaptador deberá
+comprobar ida y vuelta a ISO UTC, sin conversiones por zona local.
+
+rowversion se usaría únicamente para concurrencia: no es una fecha ni un número
+de versión institucional.
+Fuente: https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql
+
+Conservación
+
+No habilitaría borrado físico, cascadas ni limpieza automática de
+auditoría/idempotencia en el primer incremento.
+
+La retención definitiva sigue pendiente de Planeación y gestión documental.
+Conservar idempotencia temporalmente sin limpieza tampoco significa aprobar
+almacenamiento ilimitado: debe medirse su crecimiento y acordarse su ciclo de
+vida.
+
+5. DISEÑO DE UnitOfWork.runAtomic()
+
+Propuesta:
+1. Obtener una conexión del pool.
+2. Iniciar transacción con aislamiento SERIALIZABLE.
+3. Crear los siete repositorios ligados exclusivamente a esa transacción.
+4. Ejecutar el callback una sola vez.
+5. Esperar todas las operaciones registradas.
+6. Confirmar únicamente si no hubo errores.
+7. Ante fallo, revertir; invalidar el contexto y liberar la conexión siempre.
+
+Deben conservarse las garantías actuales:
+- Contextos vencidos rechazan operaciones.
+- Un error de repositorio impide confirmar aunque el consumidor lo capture.
+- No hay commits por repositorio.
+- No hay reintentos automáticos del callback.
+- Se rechaza reentrada transaccional.
+- Las operaciones sobre una conexión se coordinan; no se presupone que
+  Promise.all() permita ejecutar consultas SQL simultáneas en ella.
+
+Autorización vigente
+
+Las lecturas de usuario, actividad, ficha y asignaciones deben usar esa misma
+transacción. También hay que proteger la ausencia de filas: una comprobación
+sin asignación o sin reserva no puede convertirse en una carrera inadvertida.
+
+SERIALIZABLE y los índices adecuados permiten proteger rangos, incluidas
+inserciones concurrentes. Usar únicamente transacciones de escritura o lecturas
+por snapshot no demuestra esa garantía.
+Fuente: https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide
+
+Versión optimista
+
+Actualizar mediante condición sobre PK y versión esperada, recuperando la nueva
+versión. Cero filas afectadas debe distinguir recurso inexistente de versión
+obsoleta dentro del contexto, preservando los errores L2.
+
+Auditoría e idempotencia
+
+Mantener la secuencia del servicio L6-B:
+- Autorizar.
+- Consultar idempotencia.
+- Resolver replay o validar nueva operación.
+- Reservar.
+- Escribir.
+- Auditar.
+- Completar.
+- Confirmar conjuntamente.
+
+OutcomeReportJson debe conservar el resultado histórico. Reconstruirlo
+consultando el reporte actual rompería el replay después de otra modificación.
+
+Entre instancias
+
+Los índices únicos impiden duplicados aunque dos procesos compitan. Los bloqueos
+transaccionales sustituyen la cola local de memoria; no se necesita una cola
+global de JavaScript.
+
+Errores y reintentos
+
+- Duplicado conocido: DuplicateError.
+- Versión obsoleta: VersionConflictError.
+- Recurso ausente: NotFoundError.
+- Otros fallos SQL: error interno controlado, sin consultas, parámetros o
+  credenciales en HTTP.
+- Deadlock, timeout o desconexión no deben convertirse automáticamente en
+  "versión obsoleta".
+- Si se pierde la conexión al confirmar, el resultado puede ser incierto.
+  No volver a ejecutar silenciosamente: una repetición explícita con la misma
+  clave consultará el resultado, revalidando autorización.
+
+Para reproducir garantías conviene mantener inicialmente una política
+conservadora de aislamiento; optimizarla después exige pruebas, no solo reducir
+bloqueos.
+
+6. LÍMITES DE LOS CONTRATOS ACTUALES
+
+No encontré necesidad de cambiar las firmas CRUD o runAtomic() para el primer
+adaptador. Sí hay decisiones que deben resolverse antes:
+
+Limitación | Tratamiento propuesto
+IDs, claves y periodos sin longitudes máximas L2 | Aprobar límites compartidos o diseñar representación alternativa; nunca truncar.
+Índices SQL tienen límites físicos | Revisar el tamaño combinado de índices y colación.
+Decimal textual sin escala máxima | Persistir texto exacto inicialmente.
+Version opaca | Codec SQL propio, sin exigir UUID a los consumidores.
+UnitOfWork sin timeout/cancelación formal | Definir política interna segura; no liberar conexión con consultas pendientes.
+Listados sin paginación | Mantener dataset acotado y definir ampliación antes de volumen productivo.
+Sin repositorio de dependencias ni altas de catálogos | Preparación sintética explícita de pruebas, separada del host.
+Sin operaciones de retención/idempotencia | No añadir limpieza implícita.
+Ficha sin tenant propio | Mantener alcance single tenant; multitenencia requeriría diseño adicional.
+
+Los límites de claves de índice hacen especialmente importante cerrar la
+primera decisión.
+Fuente: https://learn.microsoft.com/en-us/sql/sql-server/maximum-capacity-specifications-for-sql-server
+
+7. PLAN INCREMENTAL L7-B Y COMPLEJIDAD
+
+Las complejidades son relativas; no son estimaciones de calendario.
+
+Paso | Entrega verificable | Complejidad
+B1. Cerrar decisiones técnicas | Tipos, longitudes, colación, versión SQL y controlador aprobados | Media.
+B2. Preparar entorno autorizado | Instancia local aislada y base sintética separada | Media.
+B3. Migración inicial | Ocho tablas, índices, FK, checks y control de versión/checksum | Media-alta.
+B4. Configuración y pool | Variables validadas, fallo cerrado y conexión reutilizable | Media.
+B5. Sesión y UnitOfWork | Commit/rollback, contexto invalidado, seguimiento de errores y aislamiento | Alta.
+B6. Repositorios y mapeos | Siete interfaces implementadas, sin pérdida de representación | Alta.
+B7. Composición seleccionable | Memoria conservada; SQL explícito, sin fallback silencioso | Media.
+B8. Suite de integración | Persistencia tras reinicio y concurrencia entre conexiones/procesos | Alta.
+B9. Restauración y cierre | Recuperación demostrada, regresión y límites documentados | Media-alta.
+
+Las migraciones deberían ejecutarse mediante una acción separada y autorizada,
+con cuenta distinta de la API. No ejecutarlas automáticamente al arrancar
+Functions. Una tabla técnica de historial de migraciones no sería una novena
+entidad funcional.
+
+Configuración propuesta: selección explícita de proveedor, servidor, puerto,
+base, autenticación, TLS, tamaño de pool y timeouts. Sin secretos en archivos
+versionados ni valores institucionales predeterminados. En un entorno duradero
+no permitiría cambiar silenciosamente a memoria ante un fallo SQL.
+
+Entorno local recomendado
+
+- Instancia SQL Server existente y aislada: primera opción si está disponible
+  y autorizada. Requiere acceso administrativo para preparar base/permisos y
+  puerto local controlado.
+- Contenedor SQL Server: preferible para reproducibilidad si Docker ya está
+  autorizado. Requiere recursos suficientes, motor compatible, volumen
+  persistente y publicación de puerto solo en loopback. La imagen y edición
+  deben fijarse; no usar una etiqueta cambiante como base de aceptación.
+- Instalación local nueva: alternativa si no se permite Docker; añade
+  mantenimiento y requisitos de instalación.
+- Azure SQL de desarrollo: posterior autorización específica; añade costo,
+  conectividad y administración cloud.
+
+Las ediciones Developer están destinadas a desarrollo/pruebas, no producción.
+La compatibilidad del host y arquitectura de contenedores debe verificarse antes
+de elegir esa vía.
+Fuentes:
+https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-editions-and-components-2025
+https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker
+
+Pruebas mínimas de aceptación
+
+Además de conservar la regresión L1–L6-B:
+- Crear, detener el proceso API, reiniciar y recuperar el mismo reporte.
+- Repetir después del reinicio una clave confirmada: mismo recibo, sin otra
+  auditoría.
+- Dos conexiones creando el mismo actividad/periodo.
+- Dos conexiones modificando la misma versión.
+- Dos procesos compitiendo por la misma clave.
+- Revocación concurrente con autorización/escritura.
+- Rollback tras escribir reporte, auditoría o resultado idempotente.
+- Error de repositorio capturado que igualmente impida commit.
+- Desconexión durante la confirmación y recuperación mediante replay.
+- Round-trip de nulos, decimales, Unicode, fechas y versiones.
+- Respaldo/restauración y conciliación de reporte, auditoría e idempotencia.
+
+SQLite no sustituiría estas pruebas del motor seleccionado.
+
+8. SEGURIDAD, COSTOS Y DECISIONES PENDIENTES
+
+Sistemas puede definir controlador, pool, migraciones, parámetros SQL, bloqueo,
+codificación y pruebas. Planeación debe resolver vigencia de asignaciones,
+roles, visibilidad, estados institucionales, reglas numéricas y retención.
+P-13 requiere además decisión conjunta de arquitectura y operación; véase
+docs/02-requisitos/PAI-004_Pendientes_Planeacion.md:19.
+
+Controles propuestos:
+- Principal de ejecución sin DDL ni permisos de administración.
+- Auditoría con SELECT/INSERT, sin UPDATE/DELETE para la API.
+- Catálogos y asignaciones con permisos mínimos acordes con operaciones
+  autorizadas.
+- Consultas parametrizadas.
+- Ninguna conexión SQL desde React.
+- Configuración local separada; sin fallback de autenticación productiva a
+  credenciales de desarrollo.
+- Identidad administrada para Functions → Azure SQL cuando se autorice Azure,
+  independiente del JWT del usuario.
+  Fuente: https://learn.microsoft.com/en-us/azure/azure-functions/functions-identity-access-azure-sql-with-managed-identity
+- Backups y restauraciones probados, con RPO/RTO acordados. Los backups no
+  reemplazan auditoría ni retención funcional.
+  Fuente: https://learn.microsoft.com/en-ca/azure/azure-sql/database/automated-backups-overview
+
+No hay datos suficientes para calcular costo real. Se necesitan región,
+modalidad de cómputo, carga, conexiones simultáneas, crecimiento de snapshots,
+almacenamiento, retención de backups, disponibilidad y red. Serverless no debe
+asumirse automáticamente como la alternativa más económica.
+Fuente: https://azure.microsoft.com/en-us/pricing/details/azure-sql-database/single/
+
+9. ESTADO DOCUMENTAL Y CIERRE DE LA REVISIÓN ORIGINAL
+
+El maestro sí registra el cierre técnico local de L6-B y sus pruebas, pero no su
+commit real. Requiere, en una actualización posterior autorizada:
+- Registrar 2543c0a como commit de L6-B y HEAD del corte.
+- Retirar "pendiente de commit" del estado vigente.
+- Actualizar README y documento L6-B, que también quedaron rezagados.
+- Aclarar la nomenclatura: el maestro aún contiene "L7 regresión integral",
+  mientras el alcance actual define L7-A/L7-B como persistencia duradera.
+  No debe perderse la regresión prevista.
+
+No corregí esas discrepancias. Durante la revisión original no ejecuté builds,
+pruebas, instalaciones, migraciones o conexiones institucionales. No modifiqué
+archivos y Git permaneció limpio al cierre de esa revisión.
+
+La siguiente autorización recomendable es un L7-B acotado a SQL Server local y
+datos sintéticos, empezando por las decisiones de representación y el contrato
+transaccional.
+
+Nota de esta entrega: únicamente se crea este archivo de texto para compartir
+el informe solicitado. No se inicia L7-B ni se realiza commit, push, PR, merge
+o despliegue.

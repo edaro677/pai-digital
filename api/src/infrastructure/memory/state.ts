@@ -1,5 +1,37 @@
 import type { AccessAssignment, Activity, AuditEvent, Dependency, Ficha, IdempotencyRecord, InstitutionalUser, Report } from '../../domain/entities.js';
 import { DuplicateError, NotFoundError } from '../../domain/errors.js';
+import { correlationId, decimalText, entityId, periodKey, utcInstant, version } from '../../domain/types.js';
+import type { NewReport } from '../../application/ports/repositories.js';
+
+// Frontera de persistencia: también valida entradas JS sin confiar en marcas TypeScript.
+export function validateUser(row: InstitutionalUser): void {
+  entityId('user', row.id); entityId('tenant', row.tenantId);
+  entityId('directory-object', row.directoryObjectId); version(row.version);
+}
+export function validateAssignment(row: AccessAssignment): void {
+  entityId('assignment', row.id); entityId('user', row.userId); entityId('ficha', row.fichaId);
+  utcInstant(row.validFrom); if (row.validUntil !== null) utcInstant(row.validUntil);
+  version(row.version);
+}
+export function validateReport(row: NewReport): void {
+  entityId('report', row.id); entityId('activity', row.activityId); periodKey(row.period);
+  if (row.quantity !== null) decimalText(row.quantity);
+  entityId('user', row.createdBy); entityId('user', row.updatedBy);
+  utcInstant(row.createdAt); utcInstant(row.updatedAt);
+}
+export function validateAudit(event: AuditEvent): void {
+  entityId('audit-event', event.id); entityId('user', event.actorId);
+  utcInstant(event.occurredAt); correlationId(event.correlationId);
+  const change = event.change;
+  if (change.action === 'poc:user-enabled-changed') {
+    validateUser(change.before); validateUser(change.after);
+  } else if (change.action === 'poc:assignment-enabled-changed') {
+    validateAssignment(change.before); validateAssignment(change.after);
+  } else {
+    if (change.before !== null) { validateReport(change.before); version(change.before.version); }
+    validateReport(change.after); version(change.after.version);
+  }
+}
 
 /** Solo inicialización explícita; sin fixtures, archivos ni carga implícita. */
 export interface MemorySeed {
@@ -41,6 +73,16 @@ export function requireRow<Row>(rows: Map<string, Row>, id: string): Row {
 }
 
 export function createState(seed: MemorySeed): MemoryState {
+  for (const row of seed.users ?? []) validateUser(row);
+  for (const row of seed.dependencies ?? []) { entityId('dependency', row.id); version(row.version); }
+  for (const row of seed.fichas ?? []) {
+    entityId('ficha', row.id); entityId('dependency', row.dependencyId); version(row.version);
+  }
+  for (const row of seed.activities ?? []) {
+    entityId('activity', row.id); entityId('ficha', row.fichaId); version(row.version);
+  }
+  for (const row of seed.assignments ?? []) validateAssignment(row);
+  for (const row of seed.reports ?? []) { validateReport(row); version(row.version); }
   const state: MemoryState = {
     users: table(seed.users), dependencies: table(seed.dependencies), fichas: table(seed.fichas),
     assignments: table(seed.assignments), activities: table(seed.activities), reports: table(seed.reports),

@@ -55,6 +55,36 @@ function error(response, status, jwt) {
   for (const forbidden of ['synthetic-sensitive', 'stack', ...(jwt ? [jwt] : [])]) assert.ok(!text.includes(forbidden));
 }
 
+for (const method of ['GET', 'POST', 'PATCH']) {
+  test(`L7-B2 HTTP ${method}: ID 64 autorizado, 65 inválido, sin token 401`, async () => {
+    const target = 'R'.repeat(64);
+    const s = setup(f => {
+      if (method === 'POST') f.seed.activities[0].id = target;
+      else f.seed.reports = [{ ...reportInput(f), id: target, version: version('initial') }];
+    });
+    const jwt = await s.token();
+    const input = method === 'POST' ? s.body : method === 'PATCH' ? { expectedVersion: 'initial', narrative: 'Cambio' } : undefined;
+    const handler = s.handlers[method === 'POST' ? 'createReport' : method === 'PATCH' ? 'updateReport' : 'getReport'];
+    assert.equal((await handler(s.request(method, jwt, target, input))).status, method === 'POST' ? 201 : 200);
+    error(await handler(s.request(method, jwt, target + 'R', input)), 400, jwt);
+    error(await handler(s.request(method, null, target + 'R', input)), 401);
+    error(await handler(s.request(method, await s.token(1), target, input)), 404);
+  });
+}
+
+test('L7-B2 HTTP periodo UTF-16: 128 válido con replay y sustitutos aislados rechazados', async () => {
+  const s = setup(); const jwt = await s.token();
+  const body = { ...s.body, period: '😀'.repeat(64) };
+  const response = await s.post(jwt, body);
+  assert.equal(response.status, 201);
+  assert.deepEqual(await s.post(jwt, body), response);
+  assert.equal((await s.events()).length, 1);
+  for (const period of ['a'.repeat(127) + '😀', '\ud800', '\udc00']) {
+    error(await s.post(jwt, { ...s.body, period }, 'another-key'), 400, jwt);
+  }
+  assert.equal((await s.events()).length, 1);
+});
+
 test('POST, PATCH y GET reales comparten memoria y mantienen DTO, autoría y snapshots', async () => {
   const s = setup(); const jwt = await s.token();
   const created = await s.post(jwt);

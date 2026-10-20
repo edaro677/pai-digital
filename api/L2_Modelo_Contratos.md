@@ -168,3 +168,24 @@ Pendiente L3: almacenamiento en memoria, copias defensivas, generación de versi
 unicidad, serialización y rollback, ciclo de vida de contextos, reservas concurrentes y
 suite reutilizable de adaptadores. Autorización, identidad y contratos HTTP de negocio
 permanecen fuera de L2 y requerirán la autorización correspondiente.
+
+
+## Evolución autorizada L7-B2 — 20/10/2026
+
+El texto anterior conserva el alcance histórico L2. L7-B2 adopta la alternativa B y cambia
+expresamente sus representaciones, sin modificar marcas nominales ni firmas públicas:
+IDs internos ASCII 1–64 (alfanumérico inicial, luego alfanumérico/punto/guion/guion bajo);
+tenant/objeto GUID de 36 canónico minúsculo no nulo; periodo 1–128 unidades UTF-16,
+sin espacios extremos/controles anteriores y Unicode bien formado; clave idempotente
+ASCII 1–128 y correlación ASCII 1–64, alfanumérico inicial y resto alfanumérico/punto/
+guion/guion bajo/dos puntos; huella exactamente 64 hexadecimales minúsculos;
+Version ASCII visible 1–128; UtcInstant canónico con milisegundos, años 0001–9999.
+DecimalText permanece intacto, sin escala o límite nuevo en dominio.
+
+Se rechazan con InvalidValueError las representaciones antes admitidas que incumplan
+estas reglas; no se truncan ni normalizan. El generador interno sigue usando UUID,
+pero el constructor de ID interno no exige UUID. No se inventan reglas institucionales.
+No se modifican entidades, puertos, errores ni UnitOfWork. El núcleo sigue independiente
+de SQL, HTTP, Azure Functions y Node. Suite actual: 248 aprobadas, incluidas las pruebas
+de contratos y fronteras durante el build; los resultados originales anteriores son históricos.
+Detalle y límites: [L7B2_Representacion_SQL.md](./L7B2_Representacion_SQL.md).

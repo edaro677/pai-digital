@@ -1,5 +1,6 @@
 import { IncompatibleStateError, VersionConflictError } from '../../domain/errors.js';
 import type { Version } from '../../domain/types.js';
+import { version } from '../../domain/types.js';
 import type { MemoryState } from './state.js';
 
 /** Estado de vida transaccional interno; no es un puerto ni un commit público. */
@@ -33,6 +34,7 @@ export class MemorySession {
   }
 
   checkVersion(actual: Version, expected: Version): void {
+    version(expected);
     if (actual !== expected) throw new VersionConflictError();
   }
 

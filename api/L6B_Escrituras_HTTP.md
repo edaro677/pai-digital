@@ -1,7 +1,7 @@
 # F2 / L6-B — Escrituras HTTP seguras
 
-**Estado:** completada en su alcance técnico local, pendiente de commit. No se asigna
-identificador de commit L6-B ni se aprueba integración institucional o despliegue productivo.
+**Estado:** completada en su alcance técnico local y registrada en el commit `2543c0a`.
+Commit verificado en L7-B1; no implica aprobación de integración institucional o despliegue.
 Base verificada: `f287707`, rama feature/arquitectura-persistencia-pai, árbol inicial limpio.
 L5 está completada en alcance técnico local y registrada en ese commit. Se contrastaron
 L2–L5 y el maestro, los contratos reales y los controles de identidad/autorización existentes.
@@ -208,7 +208,7 @@ no vuelve a ejecutar la suite ni el host y conserva los demás cambios L6-B.
 
 ## Límites y siguiente revisión
 
-L6-B queda completada en alcance técnico local, pendiente de commit autorizado. No hay tokens reales,
+L6-B queda completada en alcance técnico local y registrada en `2543c0a`. No hay tokens reales,
 datos institucionales, SQL, Graph, SharePoint, recursos ni despliegue. El host permanece
 vacío y con política temporal bloqueada; sin configuración JWT válida responde 500 genérico
 y no afecta health. Los éxitos de escritura se validan únicamente mediante DI en pruebas.
@@ -219,4 +219,24 @@ peticiones exitosas con JWT válidos y persistencia operativa; los casos exitoso
 demuestran mediante controladores y DI en las 214 pruebas automatizadas. Los flujos
 institucionales de aprobación, devolución, cierre y reapertura requieren definiciones
 de Planeación y no están implementados. El cierre local no resuelve esas limitaciones.
-No se modifica React/MSAL ni se avanza a L7; no se realiza commit/push/PR/merge.
+El cierre original no modificó React/MSAL ni avanzó a L7. Posteriormente L7-A concluyó
+como diseño y L7-B1 prepara decisiones técnicas, sin implementar SQL. La regresión
+integral L1–L6-B se conserva como requisito de aceptación de persistencia duradera.
+Esta sincronización documental no vuelve a ejecutar las 214 pruebas ni el host y no
+realiza commit/push/PR/merge. Los relatos operativos anteriores conservan su base histórica.
+
+
+## Actualización de representación L7-B2 — 20/10/2026
+
+L6-B permanece registrada en 2543c0a; sus 214 pruebas y 18 peticiones son hechos históricos.
+L7-B2 ajusta representaciones por autorización expresa y queda implementada, pendiente
+ de revisión/commit. El máximo de IDs de ruta pasa de 128 a 64 caracteres ASCII;
+el párrafo de transporte original describe el contrato anterior al ajuste.
+PeriodKey conserva el máximo 128 y ahora rechaza sustitutos aislados. Version queda
+acotada a ASCII visible 1–128; claves mantienen su alfabeto y máximo HTTP.
+El cuerpo sigue limitado a 16 KiB; narración 4000 y decimal HTTP 128, sin cambio.
+No cambian endpoints, JWT, autorización, estados, recibos, auditoría o política temporal.
+La suite ejecutada L1–L7-B2 tiene 248 aprobadas, 0 fallidas: 34 nuevas, ninguna eliminada.
+Incluye IDs 64/65, autenticación previa, denegación y replay con periodo Unicode válido.
+No es una nueva validación sobre sockets ni una implementación SQL.
+Detalle: [L7B2_Representacion_SQL.md](./L7B2_Representacion_SQL.md).

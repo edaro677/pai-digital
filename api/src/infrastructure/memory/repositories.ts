@@ -2,7 +2,8 @@ import type { TransactionContext } from '../../application/ports/unitOfWork.js';
 import type { ActivityRepository, AssignmentRepository, AuditRepository, FichaRepository, IdempotencyRepository, ReportRepository, UserRepository } from '../../application/ports/repositories.js';
 import type { CompletedIdempotency, Report, ReservedIdempotency } from '../../domain/entities.js';
 import { DuplicateError, IncompatibleStateError } from '../../domain/errors.js';
-import { copy, requireRow, tuple } from './state.js';
+import { copy, requireRow, tuple, validateAudit, validateReport } from './state.js';
+import { entityId, idempotencyKey, requestFingerprint, utcInstant, version } from '../../domain/types.js';
 import type { MemorySession } from './session.js';
 
 export function createTransactionContext(session: MemorySession): TransactionContext {
@@ -13,6 +14,7 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       [...state.users.values()].find((user) => user.tenantId === tenantId && user.directoryObjectId === objectId) ?? null,
     )),
     setEnabled: (id, expected, enabled) => session.invoke(() => {
+      entityId('user', id);
       const current = requireRow(state.users, id);
       session.checkVersion(current.version, expected);
       const result = { ...current, enabled, version: session.nextVersion() };
@@ -26,6 +28,7 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       [...state.assignments.values()].filter((row) => row.userId === userId && row.fichaId === fichaId),
     )),
     setEnabled: (id, expected, enabled) => session.invoke(() => {
+      entityId('assignment', id);
       const current = requireRow(state.assignments, id);
       session.checkVersion(current.version, expected);
       const result = { ...current, enabled, version: session.nextVersion() };
@@ -49,6 +52,7 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       [...state.reports.values()].find((row) => row.activityId === activityId && row.period === period) ?? null,
     )),
     create: (input) => session.invoke(() => {
+      validateReport(input);
       if (state.reports.has(input.id) || [...state.reports.values()].some(
         (row) => row.activityId === input.activityId && row.period === input.period,
       )) throw new DuplicateError();
@@ -65,6 +69,7 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       return copy(result);
     }),
     update: (id, expected, changes) => session.invoke(() => {
+      entityId('report', id);
       const current = requireRow(state.reports, id);
       session.checkVersion(current.version, expected);
       requireRow(state.users, changes.updatedBy);
@@ -72,12 +77,14 @@ export function createTransactionContext(session: MemorySession): TransactionCon
         ...current, quantity: changes.quantity, narrative: changes.narrative, state: changes.state,
         updatedBy: changes.updatedBy, updatedAt: changes.updatedAt, version: session.nextVersion(),
       };
+      validateReport(result);
       state.reports.set(id, result);
       return copy(result);
     }),
   };
   const audit: AuditRepository = {
     append: (event) => session.invoke(() => {
+      validateAudit(event);
       if (state.audit.has(event.id)) throw new DuplicateError();
       requireRow(state.users, event.actorId);
       state.audit.set(event.id, copy(event));
@@ -89,6 +96,8 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       (row) => tuple(row.scope.actorId, row.scope.operation, row.scope.key) === tuple(scope.actorId, scope.operation, scope.key),
     ) ?? null)),
     reserve: (input) => session.invoke(() => {
+      entityId('idempotency-record', input.id); entityId('user', input.scope.actorId);
+      idempotencyKey(input.scope.key); requestFingerprint(input.requestFingerprint); utcInstant(input.createdAt);
       const key = tuple(input.scope.actorId, input.scope.operation, input.scope.key);
       if (state.idempotency.has(input.id) || [...state.idempotency.values()].some(
         (row) => tuple(row.scope.actorId, row.scope.operation, row.scope.key) === key,
@@ -103,6 +112,8 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       return copy(result);
     }),
     complete: (id, expected, outcome, completedAt) => session.invoke(() => {
+      entityId('idempotency-record', id); entityId('audit-event', outcome.auditEventId);
+      validateReport(outcome.report); version(outcome.report.version); utcInstant(completedAt);
       const current = requireRow(state.idempotency, id);
       session.checkVersion(current.version, expected);
       if (current.state !== 'poc:reserved') throw new IncompatibleStateError();

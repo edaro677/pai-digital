@@ -15,7 +15,7 @@ test('los tokens conservan la representación y no deducen códigos instituciona
   assert.equal(periodKey('synthetic-period'), 'synthetic-period');
   assert.equal(correlationId('synthetic-correlation'), 'synthetic-correlation');
   assert.equal(idempotencyKey('synthetic-operation'), 'synthetic-operation');
-  assert.equal(requestFingerprint('synthetic-fingerprint'), 'synthetic-fingerprint');
+  assert.equal(requestFingerprint('a'.repeat(64)), 'a'.repeat(64));
   for (const invalid of ['', ' leading', 'trailing ', 'line\nbreak', null, 42]) {
     assert.throws(() => entityId('user', invalid), InvalidValueError);
     assert.throws(() => version(invalid), InvalidValueError);

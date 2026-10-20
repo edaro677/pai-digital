@@ -1,4 +1,4 @@
-# API PAI — F2 / L1–L5 completadas y L6-B en implementación
+# API PAI — F2 / L1–L6-B completadas en alcance técnico local
 
 Proyecto independiente del frontend. `GET /api/poc/health` conserva su JSON estático,
 sin datos institucionales, identidad simulada ni integración de autenticación o autorización.
@@ -18,7 +18,7 @@ Rutas registradas: `GET /api/poc/fichas/{fichaId}` y
 autorización y lectura en la misma transacción; sin integración
 con el frontend. Detalle: [L5_Consultas_HTTP.md](./L5_Consultas_HTTP.md).
 
-**L6-B — Escrituras HTTP seguras en implementación; pendiente de revisión y commit.**
+**L6-B — Escrituras HTTP seguras completada en alcance técnico local, commit `2543c0a`.**
 Se agregan únicamente POST `/api/poc/actividades/{activityId}/reportes`, PATCH y GET
 `/api/poc/reportes/{reportId}`. POST/PATCH requieren poc:edit-report e Idempotency-Key;
 GET requiere poc:read. Solo se crean/editan registros sintéticos poc-draft, sin transiciones
@@ -182,10 +182,14 @@ nueve peticiones reales: health 200; consultas sin token 401 con configuración 
 válida; configuración incompleta/JSON inválido 500 genérico. No se filtraron datos sensibles
 en las respuestas observadas. Esa evidencia no acredita escrituras L6-B sobre sockets.
 
-Suite actual L1–L6-B: 214 pruebas aprobadas, 0 fallidas; se ejercitan controladores HTTP
+Suite al cierre L1–L6-B: 214 pruebas aprobadas, 0 fallidas; se ejercitan controladores HTTP
 reales con JWT sintéticos y L3/L4-A/L4-B. Se prueban versiones obsoletas, carreras,
 replays, revocación y rollback completo por fallos de auditoría o idempotencia. L6-B no
-inicia el host ni cambia su política temporal; las respuestas exitosas usan DI solo en tests.
+modifica la política temporal del host; las respuestas exitosas usan DI solo en tests.
+La validación operativa posterior inició Functions/Azurite en loopback y registró seis
+operaciones y 18 peticiones HTTP: health 200, protegidas sin token 401 y configuración
+JWT inválida 500 genérico. No se observaron divulgaciones sensibles; procesos detenidos
+y listeners liberados. Estos resultados históricos no se vuelven a ejecutar en L7-B1.
 
 POST/PATCH aceptan exclusivamente JSON UTF-8 no comprimido, hasta 16 KiB leídos por stream
 incluso sin Content-Length. Límites técnicos: narrative 4000 caracteres, period/decimal/
@@ -222,4 +226,39 @@ como dependencia de ejecución ni considerar este resultado una aprobación de p
 
 El host Functions incluye rutas administrativas propias; no son funciones de negocio.
 Se conservan los tres GET L1–L5 y se agregan pocReportCreate (POST), pocReportRead (GET)
-y pocReportUpdate (PATCH). No exponer este host a LAN, Internet ni túneles. No se implementa L7.
+y pocReportUpdate (PATCH). No exponer este host a LAN, Internet ni túneles.
+
+## Continuidad L7 — Diseño y preparación de persistencia duradera
+
+L6-B está registrada en `2543c0a`. L7-A concluyó como diseño preliminar; L7-B1 es
+preparación técnica y sincronización documental, sin adaptador SQL implementado.
+SQL Server local y Azure SQL futuro son candidatos, no infraestructura autorizada.
+Los contratos L2 permanecen intactos: sus tokens no tienen máximo de longitud y
+UtcInstant admite fechas canónicas fuera del rango de datetime2. No imponer los límites
+HTTP como límites de dominio ni convertir DecimalText a number o decimal(p,s).
+Las decisiones SQL requieren revisión antes de L7-B2; no se instalan dependencias,
+crean conexiones/bases/contenedores ni ejecutan migraciones en esta etapa.
+La regresión integral L1–L6-B, durabilidad y concurrencia entre conexiones siguen siendo
+requisitos de aceptación del futuro adaptador, no resultados acreditados por este diseño.
+
+
+## Estado vigente — L7-B2, 20/10/2026
+
+L7-B2 está implementada y pendiente de revisión/commit, sobre HEAD 2543c0a.
+Por autorización expresa se adopta la alternativa B: representaciones acotadas y futuro
+SQL convencional. Esta entrada sustituye las recomendaciones de representación L7-B1
+anteriores, conservadas como historial: ya no se mantienen tokens ilimitados ni fechas
+fuera de 0001–9999. Se descartan TokenValues, IDs binarios y bloqueos especiales por digest,
+que solo fueron propuestas; SHA-256 sigue usándose como huella idempotente.
+
+IDs internos ASCII 1–64; GUID Entra canónico minúsculo no nulo; PeriodKey 1–128 unidades
+UTF-16 bien formadas; claves ASCII 1–128 y correlación 1–64; huella hexadecimal minúscula
+64; versión ASCII visible 1–128; UTC canónico con milisegundos, años 0001–9999.
+DecimalText conserva su representación y gramática. No cambian marcas ni firmas públicas.
+HTTP ahora admite IDs de hasta 64; mantiene autenticación previa, autorización y 404 uniforme.
+Memoria valida semillas, escrituras y snapshots dentro de su contexto transaccional.
+
+Suite ejecutada: 248 aprobadas, 0 fallidas, 0 omitidas (214 previas + 34 nuevas).
+Build API, contratos, fronteras y frontend correctos; aviso frontend previo >500 kB.
+No se arrancó el host ni se probó Entra real. No hay SQL, migraciones, dependencias nuevas,
+infraestructura o cambios de frontend. Detalle: [L7B2_Representacion_SQL.md](./L7B2_Representacion_SQL.md).

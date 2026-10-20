@@ -59,7 +59,7 @@ test('usuario reconocido sin asignaciones se deniega', async () => {
 });
 test('oid desconocido no se resuelve por nombre, correo, UPN o userId', async () => {
   const s = setup();
-  assert.deepEqual(await s.decide(s.identity(0, { objectId: entityId('directory-object', 'unknown-object'),
+  assert.deepEqual(await s.decide(s.identity(0, { objectId: entityId('directory-object', '99999999-9999-4999-8999-999999999999'),
     userId: s.f.alpha, email: s.f.seed.users[0].alias, upn: s.f.seed.users[0].alias })), { allowed: false });
 });
 test('ficha inexistente no se distingue en la decisión', async () => {

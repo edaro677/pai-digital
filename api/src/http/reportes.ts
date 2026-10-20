@@ -13,7 +13,7 @@ class RequestError extends Error {
   constructor(readonly status: 400 | 413 | 415) { super('Solicitud no válida.'); }
 }
 function validId(id: unknown): id is string {
-  return typeof id === 'string' && id.length > 0 && id.length <= 128
+  return typeof id === 'string' && id.length > 0 && id.length <= 64
     && /^[A-Za-z0-9]/.test(id) && !/[^A-Za-z0-9._-]/.test(id);
 }
 

@@ -16,8 +16,8 @@ export function fixtures() {
     description: `Actividad sintética ${name}`, version: v,
   }));
   const users = [alpha, beta, reader].map((id, index) => ({
-    id, tenantId: entityId('tenant', 'synthetic-tenant'),
-    directoryObjectId: entityId('directory-object', `synthetic-object-${index}`),
+    id, tenantId: entityId('tenant', '11111111-1111-4111-8111-111111111111'),
+    directoryObjectId: entityId('directory-object', `33333333-3333-4333-8333-${String(index + 1).padStart(12, '0')}`),
     alias: `Actor sintético ${index}`, enabled: true, version: v,
   }));
   const assignments = [
@@ -60,6 +60,6 @@ export function reservation(f, overrides = {}) {
   return {
     id: entityId('idempotency-record', 'synthetic-operation'),
     scope: { actorId: f.alpha, operation: 'poc:create-report', key: idempotencyKey('synthetic-key') },
-    requestFingerprint: requestFingerprint('synthetic-fingerprint'), createdAt: f.now, ...overrides,
+    requestFingerprint: requestFingerprint('a'.repeat(64)), createdAt: f.now, ...overrides,
   };
 }

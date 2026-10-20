@@ -158,3 +158,19 @@ operaciones de una instancia se serializan. Es adecuado para un dataset de prueb
 no un diseño de capacidad productiva. No hay conexiones SQL, caché distribuida, retención,
 autorización, autenticación ni endpoints de negocio. L4 y etapas posteriores requieren
 autorización expresa; los roles y reglas institucionales siguen sujetos a Planeación.
+
+
+## Alineación L7-B2 — 20/10/2026
+
+Se validan las representaciones acotadas L2 autorizadas al preparar semillas y dentro
+de las escrituras de memoria, incluyendo versiones esperadas, snapshots de auditoría
+y resultados de idempotencia. Las entradas JavaScript inválidas tampoco se persisten.
+No se implementa SQL ni carga automática de fixtures. No cambian la cola por instancia,
+copia privada, atomicidad, rollback, copias defensivas o invalidación de contextos.
+Los fallos de representación capturados por el callback también abortan el commit.
+
+Se conserva toda la regresión L3 y se agregan rechazos de semillas, rollback de ocho
+operaciones inválidas y auditoría de habilitación. Suite conjunta L1–L7-B2: 248 aprobadas,
+0 fallidas; no implica persistencia duradera ni concurrencia SQL entre conexiones.
+Los pendientes de etapas posteriores descritos arriba corresponden al cierre original L3.
+Detalle: [L7B2_Representacion_SQL.md](./L7B2_Representacion_SQL.md).

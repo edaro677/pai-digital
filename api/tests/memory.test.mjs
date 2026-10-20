@@ -5,7 +5,7 @@ import { entityId, version, periodKey, requestFingerprint } from '../.local-buil
 import { fixtures, reportInput, auditEvent, reservation } from './fixtures/memory.mjs';
 
 const code = (expected) => (error) => { assert.equal(error.code, expected); return true; };
-const missing = (kind) => entityId(kind, 'synthetic-missing');
+const missing = (kind) => entityId(kind, kind === 'tenant' || kind === 'directory-object' ? '99999999-9999-4999-8999-999999999999' : 'synthetic-missing');
 function setup() { const f = fixtures(); return { f, store: new MemoryUnitOfWork(f.seed) }; }
 function deferred() {
   let resolve;
@@ -150,7 +150,7 @@ test('idempotencia: duplicados por ID/scope se rechazan con igual o distinta hue
   const initial = reservation(f);
   const pending = await store.runAtomic(async (tx) => tx.idempotency.reserve(initial));
   for (const input of [initial, { ...initial, id: entityId('idempotency-record', 'other') },
-    { ...initial, id: entityId('idempotency-record', 'other'), requestFingerprint: requestFingerprint('different') },
+    { ...initial, id: entityId('idempotency-record', 'other'), requestFingerprint: requestFingerprint('b'.repeat(64)) },
     { ...initial, scope: { ...initial.scope, key: 'other-key' } }]) {
     await assert.rejects(store.runAtomic(async (tx) => tx.idempotency.reserve(input)), code('DUPLICATE'));
   }

@@ -27,7 +27,7 @@ export function createFichaHandlers(identity: IdentityValidator, queries: ReadFi
         const id = request.params.fichaId;
         // Restricción de transporte de la PoC; no cambia identificadores opacos de L2.
         if (request.method !== 'GET' || request.query.size !== 0 || request.body !== null
-            || typeof id !== 'string' || id.length > 128
+            || typeof id !== 'string' || id.length > 64
             || !/^[A-Za-z0-9]/.test(id) || /[^A-Za-z0-9._-]/.test(id)) {
           return queryResponse(400, { error: { code: 'INVALID_REQUEST', message: 'Solicitud no válida.' } });
         }

@@ -6,7 +6,7 @@
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L1–L5 completadas en alcance técnico local y registradas en Git. L5 corresponde a `f287707`. L6-A aprobada como diseño; L6-B **completada en su alcance técnico local, pendiente de commit**. L7 no iniciada.
+**Estado:** F2 en ejecución; L1–L6-B completadas en alcance técnico local y registradas en Git. L5 corresponde a `f287707` y L6-B a `2543c0a`. L6-A aprobada como diseño; L7-A concluida como diseño preliminar y L7-B1 en preparación técnica/documental. No hay adaptador SQL implementado ni autorización de infraestructura.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `f287707` — `feat(api): implementa consultas HTTP autenticadas por ficha`. L6-B parte de ese HEAD y no tiene commit.
+- Último commit confirmado mediante Git: `2543c0a` — `feat(api): implementa escrituras HTTP seguras de reportes`. L6-B parte de `f287707` y quedó registrada en `2543c0a`.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -72,8 +72,10 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L4-B — Autorización por ficha y capacidades | Completada | `8914e94` | 132 pruebas aprobadas según cierre; commit verificado localmente, 6 archivos |
 | L5 — Consultas HTTP autenticadas | Completada en alcance técnico local | `f287707` | Dos GET; 182 pruebas aprobadas; Functions/Azurite y nueve peticiones HTTP reales validados |
 | L6-A — Diseño de escrituras | Aprobado como diseño técnico | — | Sin cambios de código en esa etapa |
-| L6-B — Escrituras HTTP seguras | **Completada en alcance técnico local; pendiente de commit** | — | POST/PATCH/GET de reporte; 214 pruebas aprobadas; Functions/Azurite, seis operaciones registradas y 18 peticiones HTTP reales validadas |
-| L7 regresión integral | Pendiente | — | — |
+| L6-B — Escrituras HTTP seguras | **Completada en alcance técnico local** | `2543c0a` | POST/PATCH/GET de reporte; 214 pruebas aprobadas; Functions/Azurite, seis operaciones registradas y 18 peticiones HTTP reales validadas |
+| L7-A — Diseño de persistencia duradera | Diseño concluido; recomendación preliminar | — | Informe de alternativas y estrategia SQL, sin implementación |
+| L7-B1 — Preparación técnica SQL | Análisis y sincronización documental; pendiente de revisión | — | Decisiones de representación, compatibilidad L2 y esquema preliminar; sin migraciones |
+| Regresión integral L1–L6-B | Requisito de aceptación transversal para L7 | — | Debe conservarse al incorporar y validar el adaptador SQL |
 
 **Último `git log -5 --oneline` confirmado localmente:**
 
@@ -142,12 +144,12 @@ Los nombres Gestor ALFA, Gestor BETA y Consultor ALFA describen fixtures, no rol
 institucionales aprobados. Los estados, capacidades y convenciones de PoC no sustituyen
 las decisiones pendientes de Planeación. Detalle: [L4B_Autorizacion_Fichas.md](../../api/L4B_Autorizacion_Fichas.md).
 
-## 6. Cierre local de L5 y etapa actual L6-B
+## 6. Cierre local de L5 y L6-B
 
 **Estado:** L5 completada en su alcance técnico local por instrucción expresa del usuario,
 partiendo de `a251e2a` y registrada en `f287707`. L4-B permanece completada en `8914e94`.
-L6-A fue aprobada como diseño. L6-B está completada en alcance técnico local, pendiente
-de commit; integra identidad L4-A, autorización L4-B y persistencia transaccional L3.
+L6-A fue aprobada como diseño. L6-B está completada en alcance técnico local y registrada
+en `2543c0a`; integra identidad L4-A, autorización L4-B y persistencia transaccional L3.
 
 Se implementan GET `/api/poc/fichas/{fichaId}` y `/api/poc/fichas/{fichaId}/actividades`,
 con capacidad exacta poc:read, autorización/lectura en una misma transacción y DTO mínimos.
@@ -226,11 +228,12 @@ En cada actualización:
 
 ## 10. Estado al corte y acción inmediata
 
-**Corte actual:** L5 completada en alcance técnico local y registrada en `f287707`.
-L6-B completada en alcance técnico local sobre ese commit, pendiente de commit propio;
-L6-A aprobada como diseño. Esperar revisión y
-autorización antes de commit o nuevas etapas; L7 no iniciada. Los registros previos conservan
-el estado histórico de su fecha, incluyendo el cierre L5 antes de conocer su commit.
+**Corte actual:** L5 registrada en `f287707` y L6-B en `2543c0a`, ambas completadas en
+alcance técnico local. L7-A concluyó como diseño preliminar; L7-B1 prepara las decisiones
+SQL y sincroniza únicamente documentación. Esperar revisión y autorización antes de
+L7-B2, instalaciones, conexiones, migraciones o implementación. La regresión integral
+sigue siendo requisito de aceptación. Los registros previos conservan el estado
+histórico de su fecha, incluyendo los cierres antes de conocer sus respectivos commits.
 
 ### Antecedente del corte tras L4-B
 
@@ -311,7 +314,11 @@ en `f287707`. Las menciones a commit pendiente en el relato siguiente describen 
 - **Siguiente acción:** revisión y autorización del commit L5; L6 — Escrituras HTTP como
   siguiente etapa, todavía no iniciada. No se realizan commit, push, PR ni merge ni se avanza a L6/L7.
 
-### Registro L6-B — Completada en alcance técnico local, pendiente de commit
+### Registro L6-B — Cierre técnico local y registro posterior
+
+Actualización de trazabilidad L7-B1: L6-B quedó registrada en `2543c0a`, verificado
+mediante Git. Las menciones siguientes a commit pendiente, HEAD `f287707` y siguiente
+etapa todavía no autorizada describen el cierre histórico previo al registro de L6-B.
 
 - **Base:** rama feature/arquitectura-persistencia-pai, HEAD `f287707`, árbol inicial limpio.
   Se contrastaron L2–L5, entidades, repositorios, versiones, errores, identidad, autorización
@@ -362,3 +369,79 @@ en `f287707`. Las menciones a commit pendiente en el relato siguiente describen 
   definiciones de Planeación; no se sustituyen por estados técnicos o fixtures de prueba.
 - **Siguiente acción:** revisión y autorización del usuario; no avanzar a L7 ni realizar
   commit, push, PR o merge.
+
+### Registro L7-A / L7-B1 — Diseño concluido y preparación técnica SQL
+
+- **Fecha/base:** 19/10/2026; rama feature/arquitectura-persistencia-pai, HEAD `2543c0a`.
+  Se verificó el commit L6-B y sus 15 archivos. No había modificaciones versionadas;
+  existía únicamente el informe L7-A sin seguimiento, generado por solicitud del usuario:
+  `docs/seguimiento/PAI_F2_L7A_Diseno_Persistencia_Duradera.txt`. Se conserva intacto;
+  no se describe el árbol completo como limpio.
+- **L7-A:** diseño preliminar concluido. Candidatos: SQL Server local para validación
+  y Azure SQL posterior, manteniendo memoria para regresión. No es aprobación productiva.
+- **L7-B1:** inspección de tipos, entidades, puertos, memoria y HTTP reales, y propuesta
+  de decisiones en el informe de la conversación. Solo se sincronizan este maestro,
+  `api/README.md` y `api/L6B_Escrituras_HTTP.md`; se conserva el historial de cierres.
+- **Compatibilidad:** tokens L2 sin máximos declarados; no imponer 128 caracteres por
+  extrapolación de HTTP. DecimalText conserva texto exacto, incluidos ceros y signo.
+  UtcInstant usa ISO UTC canónico, pero admite año 0000 y años extendidos: datetime2(3)
+  no cubre todo su rango. Version es opaca, no necesariamente UUID.
+- **Propuesta pendiente de aprobación:** claves físicas internas bigint y representación
+  exacta de claves de dominio, con búsqueda por digest no único y comparación completa;
+  colación Latin1_General_100_BIN2 para texto técnico, sin normalización; versiones
+  rowversion con codec canónico; fechas ISO originales y proyección SQL opcional;
+  SQL Server 2022 Developer / compatibilidad 160 como línea base conservadora.
+  No se crean nuevos límites públicos, permisos o estados institucionales.
+- **Controlador candidato:** mssql con Tedious, sin componente nativo obligatorio;
+  versión exacta y dependencias transitivas sujetas a comprobación del artefacto y prueba
+  con Node 24 antes de instalar. La evidencia web consultada no constituye ejecución local.
+- **Aceptación futura:** regresión integral L1–L6-B, round-trip de representaciones,
+  persistencia tras reinicio, unicidad exacta, colisiones de digest forzadas, concurrencia
+  entre conexiones, revocación, rollback, replay histórico y recuperación de fallos.
+- **Pruebas en esta etapa:** no se repite la suite ni el host. Se confirma con Node que
+  fechas canónicas año 0000 y +010000 satisfacen la condición temporal usada en L2.
+  Las 214 pruebas y 18 peticiones siguen siendo evidencia histórica del cierre L6-B.
+- **Límites:** sin cambios de código, pruebas, contratos, dependencias o insumos;
+  sin SQL instalado/conectado, bases, contenedores, migraciones ni recursos Azure.
+  Vigencia de asignaciones, retención y flujos institucionales siguen pendientes.
+- **Siguiente acción:** revisar recomendaciones y aprobar explícitamente alcance,
+  representación y entorno de L7-B2. No se realiza commit, push, PR, merge o despliegue.
+
+
+### Corte vigente — L7-B2 implementada, pendiente de revisión/commit — 20/10/2026
+
+Esta entrada actualiza el estado de los cortes anteriores sin borrar su historia.
+Rama verificada: feature/arquitectura-persistencia-pai; HEAD sigue en 2543c0a (L6-B).
+L7-A/L7-B1 concluyeron como análisis; L7-B2 implementa únicamente representaciones y pruebas.
+No existe commit nuevo de L7-B2 y no se autoriza SQL, infraestructura o despliegue.
+
+- **Decisión aprobada:** alternativa B, persistencia relacional convencional con límites
+  técnicos explícitos. Se descartan las propuestas TokenValues, IDs varbinary(max) y
+  bloqueos especiales SHA-256; nunca estuvieron implementadas. La huella idempotente
+  SHA-256 de L6-B permanece. Las recomendaciones anteriores A/C quedan como antecedentes.
+- **Cambios incompatibles L2:** IDs internos ASCII 1–64; tenant/objeto GUID canónico
+  minúsculo no nulo; PeriodKey 1–128 unidades UTF-16 bien formadas; IdempotencyKey ASCII
+  1–128; CorrelationId ASCII 1–64; huella 64 hexadecimales minúsculos; Version ASCII
+  visible 1–128; UTC con milisegundos y años 0001–9999. Los alfabetos concretos constan
+  en api/L7B2_Representacion_SQL.md. DecimalText no cambia. Sin truncamiento/normalización.
+- **Contrato conservado:** mismas marcas nominales, firmas, entidades, puertos y errores;
+  sin nuevos estados, roles, fórmulas, retención o reglas funcionales institucionales.
+- **Memoria:** valida semillas y escrituras/snapshots en el contexto transaccional;
+  conserva versiones, copias defensivas, atomicidad, rollback y contextos vencidos.
+- **HTTP/seguridad:** IDs de ruta máximo 64, autenticación previa, autorización por ficha
+  y capacidad, denegación por defecto, 404 uniforme y errores internos genéricos. No
+  cambian los seis endpoints, la configuración JWT, MSAL o la política temporal bloqueada.
+  Se preservan auditoría, idempotencia, replay histórico y tamaño de solicitudes.
+- **Verificado localmente:** 248 pruebas aprobadas, 0 fallidas/omitidas: 214 históricas
+  conservadas y 34 nuevas (28 representación/memoria y 6 HTTP). Build API, contratos
+  TypeScript y fronteras aprobados mediante npm test; frontend build correcto, con aviso
+  previo de bundle >500 kB. No se arranca Functions/Azurite ni se valida HTTP por sockets.
+- **Documentación:** adiciones en README, L2, L3, L6-B y este maestro; nuevo documento
+  api/L7B2_Representacion_SQL.md. Se conservan íntegros los textos preexistentes L7-B1
+  y el informe L7-A sin seguimiento; no se reescriben como decisiones siempre vigentes.
+- **Límites:** memoria efímera, sin Entra institucional real, SQL, conexiones, bases,
+  migraciones, dependencias nuevas, recursos Azure, Graph o SharePoint. No cambia frontend.
+  Vigencia de asignaciones, aprobaciones, devolución, cierre, reapertura y retención siguen
+  pendientes de definición institucional. La regresión integral sigue siendo obligatoria.
+- **Siguiente paso:** revisión del usuario y autorización posterior antes de commit o
+  implementación del adaptador SQL. No se realiza commit, push, PR, merge ni despliegue.

@@ -51,6 +51,22 @@ function assertError(response, status, code, jwt) {
   if (jwt) assert.ok(!serialized.includes(jwt));
 }
 
+for (const resource of ['ficha', 'actividades']) {
+  test(`L7-B2 HTTP ${resource}: ID 64 autorizado, 65 inválido y autenticación previa`, async () => {
+    const target = 'F'.repeat(64);
+    const s = setup(f => {
+      f.seed.fichas[0].id = target;
+      for (const a of f.seed.activities) if (a.fichaId === f.fichaAlpha) a.fichaId = target;
+      for (const a of f.seed.assignments) if (a.fichaId === f.fichaAlpha) a.fichaId = target;
+    });
+    const jwt = await s.token();
+    assert.equal((await s.handlers[resource](s.request(jwt, target))).status, 200);
+    assertError(await s.handlers[resource](s.request(jwt, target + 'F')), 400, 'INVALID_REQUEST', jwt);
+    assertError(await s.handlers[resource](s.request(null, target + 'F')), 401, 'UNAUTHENTICATED');
+    assertError(await s.handlers[resource](s.request(await s.token(1), target)), 404, 'NOT_FOUND');
+  });
+}
+
 test('HTTP ficha autorizada: JWT real de prueba, L4-B y DTO con campos exactos', async () => {
   const s = setup(f => { f.seed.fichas[0].secret = 'synthetic-sensitive'; });
   const result = await s.handlers.ficha(s.request(await s.token()));

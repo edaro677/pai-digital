@@ -39,15 +39,48 @@ function token<Kind extends string>(value: string): Branded<string, Kind> {
   return value as Branded<string, Kind>;
 }
 
-// kind establece la marca de compilación; no codifica roles ni procedencia en el ID.
-export function entityId<Kind extends IdentifierKind>(_kind: Kind, value: string): EntityId<Kind> {
-  return token<`id:${Kind}`>(value);
+// Sin normalización: la representación recibida debe ser ya canónica.
+export function entityId<Kind extends IdentifierKind>(kind: Kind, value: string): EntityId<Kind> {
+  const result = token<`id:${Kind}`>(value);
+  if (kind === 'tenant' || kind === 'directory-object') {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)
+        || value === '00000000-0000-0000-0000-000000000000') throw new InvalidValueError();
+  } else if (value.length > 64 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)) throw new InvalidValueError();
+  return result;
 }
-export function version(value: string): Version { return token<'version'>(value); }
-export function periodKey(value: string): PeriodKey { return token<'period-key'>(value); }
-export function correlationId(value: string): CorrelationId { return token<'correlation-id'>(value); }
-export function idempotencyKey(value: string): IdempotencyKey { return token<'idempotency-key'>(value); }
-export function requestFingerprint(value: string): RequestFingerprint { return token<'request-fingerprint'>(value); }
+export function version(value: string): Version {
+  const result = token<'version'>(value);
+  if (value.length > 128 || /[^\x21-\x7e]/.test(value)) throw new InvalidValueError();
+  return result;
+}
+export function periodKey(value: string): PeriodKey {
+  const result = token<'period-key'>(value);
+  if (value.length > 128) throw new InvalidValueError();
+  // Unidades UTF-16, no grafemas. Rechaza sustitutos aislados sin alterar el texto.
+  for (let index = 0; index < value.length; index++) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(++index);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) throw new InvalidValueError();
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) throw new InvalidValueError();
+  }
+  return result;
+}
+export function correlationId(value: string): CorrelationId {
+  const result = token<'correlation-id'>(value);
+  if (value.length > 64 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value)) throw new InvalidValueError();
+  return result;
+}
+export function idempotencyKey(value: string): IdempotencyKey {
+  const result = token<'idempotency-key'>(value);
+  if (value.length > 128 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value)) throw new InvalidValueError();
+  return result;
+}
+export function requestFingerprint(value: string): RequestFingerprint {
+  const result = token<'request-fingerprint'>(value);
+  if (!/^[0-9a-f]{64}$/.test(value)) throw new InvalidValueError();
+  return result;
+}
 
 /** Representación decimal exacta, sin rangos, escala ni redondeo institucionales. */
 export function decimalText(value: string): DecimalText {
@@ -57,7 +90,8 @@ export function decimalText(value: string): DecimalText {
 
 /** ISO UTC canónico con milisegundos; valida representación, no ventanas de reporte. */
 export function utcInstant(value: string): UtcInstant {
-  if (typeof value !== 'string') throw new InvalidValueError();
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)
+      || value.startsWith('0000-')) throw new InvalidValueError();
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new InvalidValueError();
   return value as UtcInstant;
