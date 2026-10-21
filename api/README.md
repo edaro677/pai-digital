@@ -284,3 +284,33 @@ Suite L1–L7-B4: 260 aprobadas, 0 fallidas/omitidas: 248 anteriores + 12 prueba
 El pretest compila API, contratos y fronteras. El build frontend sigue siendo obligatorio.
 La inspección estática no acredita sintaxis compilada, restricciones, permisos efectivos,
 durabilidad, concurrencia o rollback del motor: esas pruebas quedan pendientes.
+
+## Diagnóstico independiente L8-B — 21/10/2026
+
+Conectividad real Node.js 24.22.0 x64 -> mssql 12.7.10 / msnodesqlv8 5.6.0 -> ODBC
+Driver 17 -> Shared Memory -> PAIPOC/pai_poc_dev validada con Windows integrada.
+Detalle y límites: [L8B_Conectividad_SQL.md](./L8B_Conectividad_SQL.md).
+
+Desde api/: `npm run sql:diagnose -- --local`. Es un ejecutor administrativo separado
+de src y del host HTTP; solo lecturas y transacción con rollback, sin datos ni migraciones.
+Las dos dependencias nuevas están fijadas como devDependencies. El binding nativo se
+carga exclusivamente al invocar el diagnóstico, nunca por health, build o npm test.
+
+`npm run test:sql` omite la integración por defecto; exige PAI_SQL_INTEGRATION=1
+para conectar. Suite ordinaria: 275 aprobadas; integración optativa: una aprobada.
+No se cambia MemoryUnitOfWork, autorización, contratos HTTP ni configuración SQL.
+No se habilitan escrituras de aplicación con la identidad administrativa de esta prueba.
+No se modifica ni ejecuta up/down, ni verificadores R1. Pendiente de revisión, sin commit.
+
+
+### Observabilidad optativa L8-B-R4
+
+`npm run sql:diagnose -- --local --trace` activa registros sanitizados por etapa en
+stderr. Sin `--trace` permanecen desactivados. Se conservan stdout, los contratos
+HTTP y los timeouts. La traza usa campos y codigos tecnicos permitidos, sin identidades,
+SQL completo, cadenas de conexion ni errores originales. El primer error principal
+se conserva aunque falle el rollback o el cierre. Detalles, limitaciones y activacion
+de la integracion de lectura en [L8B_Conectividad_SQL.md](./L8B_Conectividad_SQL.md).
+La intermitencia sigue pendiente de diagnostico; no se declara resuelta por incorporar
+observabilidad. La cifra de 275 anterior corresponde al cierre inicial de L8-B;
+R2 amplio la suite a 288 pruebas antes de las pruebas nuevas de trazabilidad R4.

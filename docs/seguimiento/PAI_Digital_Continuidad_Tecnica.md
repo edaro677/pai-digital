@@ -1,12 +1,12 @@
 # PAI Digital — Documento maestro de continuidad técnica
 
-**Corte:** 20 de octubre de 2026
+**Corte:** 21 de octubre de 2026
 
 **Organización:** Fundación Universitaria María Cano (FUMC)
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución; L7-B4 registrada en dc72d99. L7-B5-B2-R2 implementa auxiliares R1 y verifica con éxito la migración original aplicada en pai_poc_dev local. Historial, catálogo y tablas vacías preservados. Pendiente de revisión/commit; no existe adaptador SQL ni autorización productiva.
+**Estado:** F2 en ejecución. Verificador SQL R1 registrado en `bade509ad6d4b3b4ae8c1b537eaa6b64101425f7`. L8-B completada en su alcance técnico local: conectividad Node.js/SQL Server, resultados sanitizados y traza optativa; cierre y commit único autorizados por el usuario. Intermitencia documentada sin causa confirmada. HTTP conserva memoria; no existe adaptador SQL de aplicación ni autorización productiva.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- Último commit confirmado mediante Git: `dc72d99` — `feat(api): prepara migracion SQL inicial versionada`. L6-B permanece en `2543c0a` y L7-B2 en `ba6c2b6`.
+- HEAD confirmado antes del commit de cierre L8-B: `bade509ad6d4b3b4ae8c1b537eaa6b64101425f7` — `fix(api): versiona verificador SQL R1 y valida migracion inicial`. L7-B4 permanece en `dc72d99`, L6-B en `2543c0a` y L7-B2 en `ba6c2b6`. El identificador del commit de cierre se entrega mediante Git; no se anticipa en este corte documental.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -78,7 +78,8 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L7-B2 — Representaciones acotadas | Completada y registrada | `ba6c2b6` | 248 pruebas; alternativa B aprobada y contratos ajustados |
 | L7-B3 — Diseño SQL | Diseño concluido | — | Ocho tablas y estrategia revisadas en conversación; sin ejecución |
 | L7-B4 — Migración inicial en archivos | Registrada | `dc72d99` | up/verify/down originales y manifiesto inmutables; validación estática histórica |
-| L7-B5-B2-R2 — Verificador auxiliar R1 | Verificación local exitosa; pendiente de revisión/commit | — | 269 pruebas; verify R1 correcto; historial y datos intactos; down no ejecutado |
+| L7-B5-B2-R2/R3 — Verificador auxiliar R1 | Completado y registrado | `bade509` | 269 pruebas; verify R1 correcto; historial y datos intactos; down no ejecutado |
+| L8-B — Conectividad SQL local y observabilidad sanitizada | Completada en alcance técnico local; commit de cierre autorizado | Ver informe Git de cierre | 298 pruebas; integración real de lectura satisfactoria en R4; 16 etapas sanitizadas; intermitencia pendiente |
 | Regresión integral L1–L6-B | Requisito de aceptación transversal para L7 | — | Debe conservarse al incorporar y validar el adaptador SQL |
 
 **Último `git log -5 --oneline` confirmado localmente:**
@@ -528,3 +529,63 @@ No existe commit nuevo de L7-B2 y no se autoriza SQL, infraestructura o desplieg
   Conservados los pendientes institucionales de Planeación y la regresión integral.
 - **Restricciones cumplidas:** sin nuevas bases o registros funcionales, alteración de
   historial, configuraciones, commit, push, PR, merge o despliegue. Esperar revisión.
+
+
+### Registro L8-B — Consolidación de conectividad SQL y observabilidad — 21/10/2026
+
+- **Base confirmada:** feature/arquitectura-persistencia-pai, HEAD
+  `bade509ad6d4b3b4ae8c1b537eaa6b64101425f7`, nueve archivos pendientes de L8-B.
+  El registro histórico R2 anterior conserva su estado previo al commit; Git confirma
+  que el verificador R1 quedó registrado en ese HEAD. No se modifican los originales
+  0001_initial, manifiestos, auxiliares R1 ni el historial SQL.
+- **Implementación:** ejecutor independiente en api/scripts/sql-diagnostic.mjs y perfil
+  fijo en sql-diagnostic-config.mjs, fuera de src, HTTP y composición de dependencias.
+  Se incorporan mssql 12.7.10 y msnodesqlv8 5.6.0 como dependencias de desarrollo exactas,
+  con lockfile; ODBC Driver 17 x64 17.10.6.1 ya estaba instalado. Node.js 24.22.0 x64.
+- **Conectividad demostrada en L8-B/R4:** SQL Server 2022 Developer 16.0.1210.3,
+  instancia PAIPOC, base sintética pai_poc_dev, Shared Memory y autenticación Windows
+  integrada (NTLM observado). No se habilitan TCP/IP o Named Pipes ni se cambia el motor.
+- **Seguridad:** no se publican identidades Windows, nombres de principales, cadenas
+  de conexión, datos de resultados, mensajes originales ni stacks del controlador.
+  Resultados y trazas se proyectan mediante listas positivas; errores con categorías
+  y mensajes fijos. El perfil rechaza alojamiento Azure, otros runtimes y destinos.
+  TrustServerCertificate=Yes es una excepción exclusiva del diagnóstico local.
+- **Restricción administrativa:** la conexión observada tiene privilegios administrativos,
+  expresados solo mediante un booleano. Está prohibido reutilizar sysadmin para escrituras
+  funcionales de la API. Una identidad de aplicación con privilegios mínimos y su validación
+  necesitan autorización e implementación posteriores; no se crean usuarios ni permisos.
+- **Observabilidad R4:** desactivada por defecto; CLI --local --trace o configuración
+  explícita del ejecutor local. stderr recibe etapa fija, duración monotónica, resultado,
+  categoría/código permitido e indicadores del pool/transacción; stdout conserva el JSON
+  de resultado. No se incorpora traza a respuestas HTTP. transactionActive es seguimiento
+  del cliente, no prueba independiente del estado SQL tras un fallo de limpieza.
+- **Limpieza:** rollback y cierre se intentan cuando corresponde. Fallos secundarios no
+  sustituyen la categoría del error principal. La traza registra cada fallo de limpieza;
+  fallos síncronos del destino de traza se descartan sin alterar el resultado SQL.
+- **Pruebas automatizadas R4:** 298 aprobadas, ninguna fallida/omitida (288 anteriores
+  y diez nuevas de trazabilidad). Las 29 dirigidas incluyen 23 de privacidad/trazabilidad
+  y seis del diagnóstico; health funciona con carga nativa bloqueada. Pretest verifica
+  compilación API, TypeScript, contratos y fronteras. Frontend compila con aviso previo
+  de bundle superior a 500 kB. La revisión de cierre vuelve a ejecutar la regresión
+  pertinente antes del commit; sus resultados finales constan en el informe de cierre.
+- **SQL real R4, evidencia previa al cierre:** una integración optativa de solo lectura,
+  16 etapas satisfactorias, 234 ms en el cuerpo de la prueba. Conexión 82 ms, catálogo
+  43 ms, rollback 1 ms y cierre 1 ms; category y technicalCode null. Shared Memory,
+  ocho tablas reconocidas, historial original, estado transaccional 0/1/0 y pool cerrado.
+  Consulta independiente posterior: cero sesiones diagnósticas. Este cierre no necesita
+  reejecutar SQL ni presenta los resultados anteriores como una ejecución nueva.
+- **Intermitencia pendiente:** R2/R3 registraron SQL_QUERY_FAILED y fallos de conexión,
+  incluido código 258 en 10240 ms; también hubo ejecuciones completas satisfactorias.
+  No se confirmó la causa de consulta original. Disponibilidad transitoria, recursos
+  o comportamiento del controlador son hipótesis, no conclusiones. R4 añade evidencia
+  para futuras incidencias sin elevar timeouts, añadir reintentos o declarar resolución.
+- **Límites conservados:** MemoryUnitOfWork, contratos HTTP, frontend/MSAL y migraciones
+  intactos; no hay persistencia funcional SQL, escrituras de datos, recursos Azure,
+  Graph/SharePoint ni despliegues. No se han probado durabilidad de reportes, autorización
+  SQL, concurrencia, auditoría o idempotencia SQL. Reproducibilidad del binding nativo
+  en otros equipos pendiente. Subsisten las decisiones funcionales de Planeación.
+- **Cierre autorizado:** un único commit con mensaje
+  `feat(api): incorpora diagnostico SQL local con trazabilidad sanitizada`, condicionado
+  a revisión y pruebas satisfactorias. Este corte se prepara antes del commit y no
+  inventa su hash. Sin push, PR, merge, despliegue ni avance automático a L8-C.
+  Detalle: [L8B_Conectividad_SQL.md](../../api/L8B_Conectividad_SQL.md).
