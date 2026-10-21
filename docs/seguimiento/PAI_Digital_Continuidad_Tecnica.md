@@ -6,7 +6,7 @@
 
 **Proyecto:** PAI Digital
 
-**Estado:** F2 en ejecución. Verificador SQL R1 registrado en `bade509ad6d4b3b4ae8c1b537eaa6b64101425f7`. L8-B completada en su alcance técnico local: conectividad Node.js/SQL Server, resultados sanitizados y traza optativa; cierre y commit único autorizados por el usuario. Intermitencia documentada sin causa confirmada. HTTP conserva memoria; no existe adaptador SQL de aplicación ni autorización productiva.
+**Estado:** F2 en ejecución. L8-B registrada en `90e160eaa3dcfe0104c402bb00e5558b614ecb8e`. L8-C1 y auditoría R1 implementan codecs y sesión transaccional con transporte inyectable, aislados de HTTP y probados con dobles; correcciones auditadas, 348 pruebas aprobadas y commit de cierre autorizado. HTTP conserva memoria; no existe adaptador SQL funcional ni autorización productiva. La intermitencia SQL previa continúa sin causa confirmada.
 
 **Fuente de estado:** antecedentes de conversación, reportes y documentación contrastados por Codex mediante inspección local. Los resultados L1–L4-B se conservan como cierres históricos; la ejecución L5 descrita al final incluye compilación y pruebas locales nuevas, sin validar Entra real.
 
@@ -50,7 +50,7 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 - Repositorio local: `D:\PAI\pai-digital-react`.
 - GitHub: `https://github.com/edaro677/pai-digital`.
 - Rama de trabajo actual: `feature/arquitectura-persistencia-pai`.
-- HEAD confirmado antes del commit de cierre L8-B: `bade509ad6d4b3b4ae8c1b537eaa6b64101425f7` — `fix(api): versiona verificador SQL R1 y valida migracion inicial`. L7-B4 permanece en `dc72d99`, L6-B en `2543c0a` y L7-B2 en `ba6c2b6`. El identificador del commit de cierre se entrega mediante Git; no se anticipa en este corte documental.
+- HEAD confirmado al iniciar L8-C1: `90e160eaa3dcfe0104c402bb00e5558b614ecb8e` — `feat(api): incorpora diagnostico SQL local con trazabilidad sanitizada`. Git inicialmente limpio. Los cortes de commit pendiente de L8-B conservados debajo son históricos.
 - Estrategia de ramas: `main` estable, `develop` integración, `feature/*` implementación.
 - Frontend: React 19.3, TypeScript 5.7.3, Vite 6.4.4; MSAL browser 4.30 y MSAL React 3.0.29.
 - API PoC: Azure Functions Node v4 y TypeScript, `api/` aislado; Node 24.22.0, npm 11.19.1, Core Tools 4.16.0; Azurite 3.37.0 en loopback.
@@ -79,7 +79,8 @@ diferenciar siempre lo implementado, lo probado, lo pendiente y los supuestos.
 | L7-B3 — Diseño SQL | Diseño concluido | — | Ocho tablas y estrategia revisadas en conversación; sin ejecución |
 | L7-B4 — Migración inicial en archivos | Registrada | `dc72d99` | up/verify/down originales y manifiesto inmutables; validación estática histórica |
 | L7-B5-B2-R2/R3 — Verificador auxiliar R1 | Completado y registrado | `bade509` | 269 pruebas; verify R1 correcto; historial y datos intactos; down no ejecutado |
-| L8-B — Conectividad SQL local y observabilidad sanitizada | Completada en alcance técnico local; commit de cierre autorizado | Ver informe Git de cierre | 298 pruebas; integración real de lectura satisfactoria en R4; 16 etapas sanitizadas; intermitencia pendiente |
+| L8-B — Conectividad SQL local y observabilidad sanitizada | Completada y registrada en alcance técnico local | `90e160e` | 298 pruebas; integración real de lectura satisfactoria en R4; 16 etapas sanitizadas; intermitencia pendiente |
+| L8-C1/R1 — Codecs y sesión SQL aislada | Auditada y corregida; commit de cierre autorizado | Ver informe Git de cierre | 348 pruebas aprobadas; dobles de transporte; sin SQL real ni repositorios funcionales |
 | Regresión integral L1–L6-B | Requisito de aceptación transversal para L7 | — | Debe conservarse al incorporar y validar el adaptador SQL |
 
 **Último `git log -5 --oneline` confirmado localmente:**
@@ -589,3 +590,82 @@ No existe commit nuevo de L7-B2 y no se autoriza SQL, infraestructura o desplieg
   a revisión y pruebas satisfactorias. Este corte se prepara antes del commit y no
   inventa su hash. Sin push, PR, merge, despliegue ni avance automático a L8-C.
   Detalle: [L8B_Conectividad_SQL.md](../../api/L8B_Conectividad_SQL.md).
+
+
+### Registro L8-C1 — Codecs y sesión SQL aislada — 21/10/2026
+
+- **Base:** feature/arquitectura-persistencia-pai, HEAD 90e160eaa3dcfe0104c402bb00e5558b614ecb8e,
+  Git limpio. L8-B quedó registrada en ese commit; se conservan sus relatos previos al commit.
+- **Fuentes:** siete contratos de repositorio, UnitOfWork/MemoryUnitOfWork y sesiones,
+  tipos/entidades L2, validadores de memoria, migración original y diagnóstico L8-B.
+  No se encontró archivo de informe L8-A en el repositorio; no se presupone su contenido.
+- **Implementado:** codecs, errores sanitizados y SqlSessionRunner con puertos de transporte
+  internos, sin carga de controlador ni conexión real. La sesión no sustituye UnitOfWork ni
+  crea repositorios. Contratos L2, SQL original/R1, HTTP, memoria y MSAL permanecen intactos.
+- **Conversiones:** validadores L2 para IDs, GUID, periodo, claves y huellas; texto/booleanos
+  estrictos; DecimalText textual exacto; ISO UTC/Date para datetime2(3); null explícito;
+  enumeraciones existentes; ocho bytes RV/Version rv1:hex; snapshots tipados con versiones
+  históricas opacas; InsertionOrder bigint sin Number. Se rechazan JSON duplicado, campos
+  desconocidos o incompletos y valores inválidos sin exponer el contenido.
+- **Vida transaccional:** transporte inyectable y conexión exclusiva; consultas ligadas a
+  la misma transacción SERIALIZABLE; modo commit/rollback explícito. Rechazo de anidación,
+  concurrencia y uso posterior al cierre. Drenaje de consultas pendientes antes de liberar;
+  consultas no esperadas impiden confirmar. Primer error preservado ante fallos de limpieza.
+  Errores de dominio conocidos del callback se conservan sin copiar mensajes contaminados.
+- **Fronteras:** tres fuentes SQL permitidas, sin imports desde HTTP/composición/memoria
+  ni dependencias SQL hacia Entra/Azure Functions. No hay nueva configuración o dependencia.
+- **Límites:** todos los commits se prueban con dobles. No se ejecuta SQL real en L8-C1,
+  ni escrituras, migraciones o cambios de servidor/permisos. La sesión no demuestra todavía
+  cierre físico o transacciones del motor; requiere transporte con I/O acotado y descarte
+  de conexiones inciertas. Un commit fallido puede ser ambiguo en un servidor real; no
+  se reintenta ni se promete que rollback revierta un commit ya ocurrido. La intermitencia
+  previa de L8-B continúa pendiente, así como mínimos privilegios para la API y Planeación.
+- **Siguiente propuesta L8-C2:** binding de transporte y parámetros tipados, integración
+  optativa de solo lectura/rollback en pai_poc_dev, verificación de formatos reales y
+  liberación de recursos; mantener HTTP en memoria y pedir autorización antes de ampliar.
+- **Documentación:** [L8C1_Codecs_Sesion_SQL.md](../../api/L8C1_Codecs_Sesion_SQL.md)
+  detalla conversiones, responsabilidades, riesgos y alcance. Sin commit, push, PR,
+  merge o despliegue; esperar revisión del usuario.
+
+- **Validación L8-C1:** 338 pruebas API aprobadas, cero fallidas/omitidas: 298 anteriores
+  y 40 nuevas (14 codecs, 21 sesión y cinco fronteras). Pruebas dirigidas 62 aprobadas,
+  incluidas las fronteras anteriores. TypeScript, contratos y fronteras correctos;
+  frontend compila con aviso previo >500 kB. Privacidad/traza L8-B y health sin carga
+  nativa siguen aprobados. No se ejecutó integración SQL real. Git: seis nuevos y tres
+  modificados del alcance, sin staging ni commit; git diff --check sin errores.
+
+
+### Auditoría L8-C1-R1 y preparación de cierre — 21/10/2026
+
+- **Base:** HEAD 90e160eaa3dcfe0104c402bb00e5558b614ecb8e y nueve archivos pendientes
+  de L8-C1, coincidentes con lo esperado. Se conserva el relato anterior y sus 338 pruebas
+  como corte histórico, sin presentarlo como resultado posterior a las correcciones R1.
+- **Defectos demostrados:** el callback accedía a scope/transaction/finish por propiedades
+  privadas solo en TypeScript; borrar un fallo permitía commit. También podía alterar
+  la instancia de error retenida. Se corrigió con fachada runtime congelada, campos JS
+  privados, errores internos independientes y sanitización final.
+- **Codecs:** se corrigieron rowversion con iterador/byteLength sobrescritos y Date inválido
+  con métodos sobrescritos. Se leen bytes y fechas mediante intrínsecos; snapshots toman
+  valores de descriptores validados, sin una segunda lectura susceptible a Proxy.
+- **Errores:** categorías controladas, sin propiedad stack ni errores originales. Commit
+  sin respuesta fiable: SQL_COMMIT_OUTCOME_UNKNOWN y transactionOutcome=unknown;
+  rollback posterior no elimina esa ambigüedad. Close fallido después de confirmación:
+  SQL_CLOSE_FAILED y transactionOutcome=committed. Se conserva el primer error ante
+  fallos secundarios. Errores de dominio conocidos conservan tipo/código sin contaminarse.
+- **Garantías y límites:** unicidad de transacción, SERIALIZABLE solicitado, ausencia de
+  anidación/concurrencia, drenaje, rollback y cierre se prueban solo con dobles. No se
+  ejecuta integración SQL real, escrituras, migraciones ni cambios de servidor. I/O
+  acotado, descarte/cierre físico, commit ambiguo del motor y formatos ODBC siguen
+  pendientes de L8-C2. No usar sysadmin para escrituras funcionales. HTTP permanece
+  en memoria; no cambian L2, migraciones, paquetes, permisos, usuarios ni MSAL.
+- **Cierre autorizado:** un único commit con mensaje
+  `feat(api): incorpora codecs y sesion SQL transaccional aislada`, condicionado a
+  auditoría y pruebas satisfactorias. Este corte se prepara antes de registrar y no
+  anticipa el hash. No realizar push, PR, merge o despliegue ni iniciar L8-C2.
+
+- **Validación final R1:** 45 dirigidas aprobadas (18 codecs y 27 sesión), 348 pruebas API
+  aprobadas y ninguna fallida/omitida; diez regresiones nuevas frente a las 338 iniciales.
+  TypeScript, contratos y fronteras correctos. Frontend compila con aviso previo >500 kB.
+  git diff --check y revisión de archivos nuevos sin errores. No se ejecutó test:sql ni
+  integración SQL real. Se revisan y consolidan los mismos nueve archivos autorizados;
+  el identificador del commit se entrega tras registrarlo, sin inventarlo en este corte.

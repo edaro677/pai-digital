@@ -18,6 +18,7 @@ const allowedSources = new Set([
   'infrastructure/identity/config.ts', 'infrastructure/identity/errors.ts',
   'infrastructure/identity/bearer.ts', 'infrastructure/identity/keys.ts',
   'infrastructure/identity/normalize.ts', 'infrastructure/identity/validator.ts',
+  'infrastructure/sql/errors.ts', 'infrastructure/sql/codecs.ts', 'infrastructure/sql/session.ts',
 ]);
 
 export async function checkBoundaries(root = apiRoot) {
@@ -57,13 +58,15 @@ export async function checkBoundaries(root = apiRoot) {
             const core = relative.startsWith('domain/') || relative.startsWith('application/');
             const memory = relative.startsWith('infrastructure/memory/');
             const identity = relative.startsWith('infrastructure/identity/');
+            const sql = relative.startsWith('infrastructure/sql/');
             const composition = relative === 'composition/queries.ts';
-            if ((core || memory || identity) && name === '@azure/functions') {
+            if ((core || memory || identity || sql) && name === '@azure/functions') {
               throw new Error(`Dependencia de infraestructura prohibida en el núcleo: ${relative}`);
             }
             if (name.startsWith('node:')) {
               if (!(relative === 'infrastructure/memory/unitOfWork.ts' && ['node:crypto', 'node:async_hooks'].includes(name))
-                  && !(relative === 'infrastructure/reportTools.ts' && name === 'node:crypto')) {
+                  && !(relative === 'infrastructure/reportTools.ts' && name === 'node:crypto')
+                  && !(relative === 'infrastructure/sql/session.ts' && name === 'node:async_hooks')) {
                 throw new Error(`Módulo Node fuera del alcance: ${name}`);
               }
             } else if (name === 'jose') {
@@ -72,6 +75,13 @@ export async function checkBoundaries(root = apiRoot) {
               const target = path.relative(sourceRoot, path.resolve(directory, name)).split(path.sep).join('/').replace(/\.js$/, '.ts');
               if (!name.startsWith('.') || !allowedSources.has(target)) {
                 throw new Error(`Importación fuera del alcance L1-L6B: ${name}`);
+              }
+              if (target.startsWith('infrastructure/sql/') && !sql) {
+                throw new Error('La infraestructura SQL L8-C1 no puede activarse desde HTTP, composicion u otros adaptadores.');
+              }
+              if (sql && !target.startsWith('domain/') && !target.startsWith('application/ports/')
+                  && !target.startsWith('infrastructure/sql/')) {
+                throw new Error('La infraestructura SQL L8-C1 debe permanecer aislada.');
               }
               if ((relative.startsWith('domain/') && !target.startsWith('domain/'))
                   || (relative.startsWith('application/') && !target.startsWith('domain/') && !target.startsWith('application/ports/') && !target.startsWith('application/authorization/') && !target.startsWith('application/queries/') && !target.startsWith('application/reports/'))) {

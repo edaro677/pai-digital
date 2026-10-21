@@ -125,3 +125,21 @@ test('health no puede activar servicios de escritura', () => scenario(async (dir
   await writeFile(path.join(directory, 'src', 'http', 'health.ts'), 'import "../application/reports/service.js";');
   await assert.rejects(checkBoundaries(directory), /reportes L6-B solo/);
 }));
+
+for (const source of ['http/health.ts', 'composition/queries.ts', 'infrastructure/memory/session.ts']) {
+  test(`SQL L8-C1 no puede activarse desde ${source}`, () => scenario(async directory => {
+    const relative = source.startsWith('http/') || source.startsWith('composition/') ? '../' : '../../';
+    await writeFile(path.join(directory, 'src', source), `import "${relative}infrastructure/sql/session.js";`);
+    await assert.rejects(checkBoundaries(directory), /SQL L8-C1/);
+  }));
+}
+
+test('SQL L8-C1 no puede depender de Azure Functions', () => scenario(async directory => {
+  await writeFile(path.join(directory, 'src/infrastructure/sql/session.ts'), 'import type { HttpRequest } from "@azure/functions";');
+  await assert.rejects(checkBoundaries(directory), /infraestructura prohibida/);
+}));
+
+test('SQL L8-C1 no puede importar configuracion o validacion Entra', () => scenario(async directory => {
+  await writeFile(path.join(directory, 'src/infrastructure/sql/session.ts'), 'import "../identity/config.js";');
+  await assert.rejects(checkBoundaries(directory), /SQL L8-C1/);
+}));
