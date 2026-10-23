@@ -126,13 +126,37 @@ test('health no puede activar servicios de escritura', () => scenario(async (dir
   await assert.rejects(checkBoundaries(directory), /reportes L6-B solo/);
 }));
 
-for (const source of ['http/health.ts', 'composition/queries.ts', 'infrastructure/memory/session.ts']) {
+for (const source of ['http/health.ts', 'composition/queries.ts', 'infrastructure/memory/session.ts',
+  'functions/fichas.ts', 'application/queries/readFicha.ts', 'domain/entities.ts']) {
   test(`SQL L8-C1 no puede activarse desde ${source}`, () => scenario(async directory => {
-    const relative = source.startsWith('http/') || source.startsWith('composition/') ? '../' : '../../';
+    const relative = source.split('/').length === 2 ? '../' : '../../';
     await writeFile(path.join(directory, 'src', source), `import "${relative}infrastructure/sql/session.js";`);
     await assert.rejects(checkBoundaries(directory), /SQL L8-C1/);
   }));
 }
+
+test('SQL factory is the sole authorized composition entry to the three SQL constructors',()=>checkBoundaries());
+
+for(const target of ['infrastructure/sql/repositories/user.js','infrastructure/memory/unitOfWork.js'])
+  test(`SQL factory cannot widen access to ${target}`,()=>scenario(async directory=>{
+    await writeFile(path.join(directory,'src/composition/sql.ts'),`import "../${target}";`);
+    await assert.rejects(checkBoundaries(directory),/fábrica SQL L8-C1/);
+  }));
+
+test('SQL native loader rejects arbitrary modules',()=>scenario(async directory=>{
+  await writeFile(path.join(directory,'src/composition/sql.ts'),"loadNative('node:fs');");
+  await assert.rejects(checkBoundaries(directory),/ruta literal autorizadas/);
+}));
+
+test('SQL native loader rejects variable paths',()=>scenario(async directory=>{
+  await writeFile(path.join(directory,'src/composition/sql.ts'),"loadNative(process.env.PATH);");
+  await assert.rejects(checkBoundaries(directory),/ruta literal autorizadas/);
+}));
+
+test('Functions cannot bypass the existing composition entry via SQL factory',()=>scenario(async directory=>{
+  await writeFile(path.join(directory,'src/functions/fichas.ts'),'import "../composition/sql.js";');
+  await assert.rejects(checkBoundaries(directory),/composición L5 solo/);
+}));
 
 test('SQL L8-C1 no puede depender de Azure Functions', () => scenario(async directory => {
   await writeFile(path.join(directory, 'src/infrastructure/sql/session.ts'), 'import type { HttpRequest } from "@azure/functions";');

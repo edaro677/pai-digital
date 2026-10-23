@@ -3,7 +3,7 @@ import { createLocalQueryHandlers } from '../composition/queries.js';
 import { assertLocalEnvironment } from '../infrastructure/localOnly.js';
 
 assertLocalEnvironment();
-const handlers = createLocalQueryHandlers(process.env.PAI_API_IDENTITY_CONFIG);
+const handlers = createLocalQueryHandlers(process.env.PAI_API_IDENTITY_CONFIG, process.env.PAI_API_PERSISTENCE);
 
 // anonymous solo desactiva la clave Functions; el controlador exige JWT L4-A y acceso L4-B.
 app.http('pocFicha', {

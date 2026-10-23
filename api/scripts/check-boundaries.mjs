@@ -12,13 +12,19 @@ const allowedSources = new Set([
   'infrastructure/memory/repositories.ts', 'infrastructure/memory/unitOfWork.ts',
   'application/ports/identity.ts',
   'application/authorization/service.ts',
-  'application/queries/readFicha.ts', 'http/fichas.ts', 'composition/queries.ts',
+  'application/queries/readFicha.ts', 'http/fichas.ts', 'composition/queries.ts', 'composition/sql.ts',
   'functions/fichas.ts', 'functions/index.ts',
   'application/reports/service.ts', 'http/reportes.ts', 'infrastructure/reportTools.ts',
   'infrastructure/identity/config.ts', 'infrastructure/identity/errors.ts',
   'infrastructure/identity/bearer.ts', 'infrastructure/identity/keys.ts',
   'infrastructure/identity/normalize.ts', 'infrastructure/identity/validator.ts',
-  'infrastructure/sql/errors.ts', 'infrastructure/sql/codecs.ts', 'infrastructure/sql/session.ts',
+  'infrastructure/sql/errors.ts', 'infrastructure/sql/codecs.ts', 'infrastructure/sql/session.ts', 'infrastructure/sql/parameters.ts', 'infrastructure/sql/odbc.ts',
+  'infrastructure/sql/repositories/activity.ts',
+  'infrastructure/sql/repositories/shared.ts', 'infrastructure/sql/repositories/ficha.ts',
+  'infrastructure/sql/repositories/user.ts', 'infrastructure/sql/repositories/assignment.ts',
+  'infrastructure/sql/repositories/audit.ts', 'infrastructure/sql/repositories/report.ts',
+  'infrastructure/sql/repositories/idempotency.ts',
+  'infrastructure/sql/unitOfWork.ts',
 ]);
 
 export async function checkBoundaries(root = apiRoot) {
@@ -45,6 +51,15 @@ export async function checkBoundaries(root = apiRoot) {
       }
       const source = ts.createSourceFile(absolute, await readFile(absolute, 'utf8'), ts.ScriptTarget.Latest, true);
       function inspect(node) {
+        // Only the SQL composition factory may load this one literal native entry point.
+        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)
+            && ['createRequire', 'loadNative'].includes(node.expression.text)) {
+          const approved = relative === 'composition/sql.ts' && node.arguments.length === 1
+            && (node.expression.text === 'createRequire'
+              ? node.arguments[0].getText(source) === 'import.meta.url'
+              : ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === 'mssql/msnodesqlv8.js');
+          if (!approved) throw new Error('Carga SQL fuera de la fábrica y ruta literal autorizadas.');
+        }
         if (ts.isCallExpression(node)
             && (node.expression.kind === ts.SyntaxKind.ImportKeyword
                 || (ts.isIdentifier(node.expression) && ['require', 'eval', 'Function'].includes(node.expression.text)))) {
@@ -66,6 +81,7 @@ export async function checkBoundaries(root = apiRoot) {
             if (name.startsWith('node:')) {
               if (!(relative === 'infrastructure/memory/unitOfWork.ts' && ['node:crypto', 'node:async_hooks'].includes(name))
                   && !(relative === 'infrastructure/reportTools.ts' && name === 'node:crypto')
+                  && !(relative === 'composition/sql.ts' && name === 'node:module')
                   && !(relative === 'infrastructure/sql/session.ts' && name === 'node:async_hooks')) {
                 throw new Error(`Módulo Node fuera del alcance: ${name}`);
               }
@@ -76,7 +92,13 @@ export async function checkBoundaries(root = apiRoot) {
               if (!name.startsWith('.') || !allowedSources.has(target)) {
                 throw new Error(`Importación fuera del alcance L1-L6B: ${name}`);
               }
-              if (target.startsWith('infrastructure/sql/') && !sql) {
+              if (relative === 'composition/sql.ts' && !['application/ports/unitOfWork.ts',
+                'infrastructure/sql/odbc.ts', 'infrastructure/sql/session.ts', 'infrastructure/sql/unitOfWork.ts'].includes(target)) {
+                throw new Error('La fábrica SQL L8-C1 solo puede construir la unidad de trabajo SQL autorizada.');
+              }
+              const sqlFactoryImport = relative === 'composition/sql.ts'
+                && ['infrastructure/sql/odbc.ts', 'infrastructure/sql/session.ts', 'infrastructure/sql/unitOfWork.ts'].includes(target);
+              if (target.startsWith('infrastructure/sql/') && !sql && !sqlFactoryImport) {
                 throw new Error('La infraestructura SQL L8-C1 no puede activarse desde HTTP, composicion u otros adaptadores.');
               }
               if (sql && !target.startsWith('domain/') && !target.startsWith('application/ports/')
@@ -103,7 +125,9 @@ export async function checkBoundaries(root = apiRoot) {
               if (target === 'infrastructure/reportTools.ts' && !composition) {
                 throw new Error('Las herramientas concretas de reportes solo se activan desde composición.');
               }
-              if (target.startsWith('composition/') && relative !== 'functions/fichas.ts') {
+              const factoryReference = relative === 'composition/queries.ts' && target === 'composition/sql.ts';
+              const entryReference = relative === 'functions/fichas.ts' && target === 'composition/queries.ts';
+              if (target.startsWith('composition/') && !entryReference && !factoryReference) {
                 throw new Error('La composición L5 solo se activa desde su registro Functions.');
               }
               if (relative.startsWith('http/') && target.startsWith('infrastructure/')

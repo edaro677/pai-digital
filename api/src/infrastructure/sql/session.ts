@@ -2,14 +2,10 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { SqlInfrastructureError, sanitizeWorkError } from './errors.js';
 import type { SqlInfrastructureCode, SqlSessionFailure } from './errors.js';
 
-export interface SqlStatement {
-  readonly text: string;
-  readonly parameters: readonly {
-    readonly name: string;
-    readonly type: 'varchar' | 'nvarchar' | 'uniqueidentifier' | 'datetime2' | 'bit' | 'binary';
-    readonly value: string | boolean | Date | Uint8Array | null;
-  }[];
-}
+import { validateSqlStatement } from './parameters.js';
+import type { SqlStatement } from './parameters.js';
+export type { SqlStatement, SqlParameter } from './parameters.js';
+
 export type SqlRows = readonly Readonly<Record<string, unknown>>[];
 
 /** Puerto interno. El transporte futuro debe limitar sus tiempos de I/O y cerrar
@@ -56,7 +52,7 @@ class TransactionSession implements SqlSession {
       promise = (async () => {
         try {
           // No retener objetos mutables del llamador o del transporte.
-          return structuredClone(await this.#transaction.execute(structuredClone(statement)));
+          return structuredClone(await this.#transaction.execute(validateSqlStatement(structuredClone(statement))));
         } catch {
           const error = failure('SQL_QUERY_FAILED');
           this.#scope.failure ??= failure('SQL_QUERY_FAILED');
