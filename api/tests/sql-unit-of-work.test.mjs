@@ -50,7 +50,7 @@ function setup(options = {}) {
           if (Object.hasOwn(p, 'id0')) return s.parameters.some(v => v.value === row.Id);
           if (table === 'InstitutionalUsers') return row.TenantId === p.tenantId && row.DirectoryObjectId === p.directoryObjectId;
           if (table === 'Activities') return row.FichaId === p.fichaId;
-          if (table === 'AccessAssignments') return row.UserId === p.userId && row.FichaId === p.fichaId;
+          if (table === 'AccessAssignments') return row.UserId === p.userId && (p.fichaId === undefined || row.FichaId === p.fichaId);
           if (table === 'Reports') return row.ActivityId === p.activityId && row.PeriodKey === p.period;
           if (table === 'IdempotencyRecords') return row.ActorId === p.actorId && row.Operation === p.operation && row.IdempotencyKey === p.key;
           return false;
@@ -300,4 +300,17 @@ test('UoW: simple port behavior and expired contexts match memory adapter', asyn
     assert.deepEqual(result, { activity: null, fichas: [] });
     await assert.rejects(retained.fichas.findByIds([]), e => e.code === 'INCOMPATIBLE_STATE');
   }
+});
+
+test('UoW discovery uses existing scoped session and rejects retained facade after close',async()=>{
+  const f=setup();let held;
+  await f.uow.runAtomic(async c=>{
+    held=c.assignments;assert.equal(Object.isFrozen(held),true);
+    const rows=await c.assignments.listByUser('user-A');assert.equal(rows.length,1);
+    assert.equal(rows[0].enabled,false);
+  });
+  assert.equal(f.connections.length,1);assert.deepEqual(f.events,['connect','begin','query','commit','close']);
+  const before=f.statements.length;
+  await assert.rejects(held.listByUser('user-A'),safe('INCOMPATIBLE_STATE'));
+  assert.equal(f.statements.length,before);
 });

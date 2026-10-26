@@ -10,12 +10,12 @@ assertLocalEnvironment(environment);
 // Argumentos fijos. No se aceptan direcciones ni opciones desde el cliente.
 const windows = process.platform === 'win32';
 const args = windows
-  ? ['/d', '/s', '/c', 'func.cmd start --address 127.0.0.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades pocReportCreate pocReportRead pocReportUpdate']
-  : ['start', '--address', '127.0.0.1', '--port', '7071', '--functions', 'pocHealth', 'pocFicha', 'pocFichaActividades', 'pocReportCreate', 'pocReportRead', 'pocReportUpdate'];
+  ? ['/d', '/s', '/c', 'func.cmd start --address 127.0.0.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades pocReportCreate pocReportRead pocReportUpdate pocFichas pocFichaReportes pocEvidenceDeclare pocEvidenceList pocReportSubmit pocReportSubmission']
+  : ['start', '--address', '127.0.0.1', '--port', '7071', '--functions', 'pocHealth', 'pocFicha', 'pocFichaActividades', 'pocReportCreate', 'pocReportRead', 'pocReportUpdate', 'pocFichas', 'pocFichaReportes', 'pocEvidenceDeclare', 'pocEvidenceList', 'pocReportSubmit', 'pocReportSubmission'];
 const child = spawn(windows ? 'cmd.exe' : 'func', args, {
   cwd: fileURLToPath(new URL('../', import.meta.url)),
   stdio: 'inherit',
-  windowsHide: true,
+  windowsHide: environment.PAI_HOST_INTERACTIVE !== '1',
   env: environment,
 });
 

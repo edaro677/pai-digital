@@ -6,13 +6,14 @@ import ts from 'typescript';
 const apiRoot = fileURLToPath(new URL('../', import.meta.url));
 const allowedSources = new Set([
   'functions/health.ts', 'http/health.ts', 'infrastructure/localOnly.ts',
-  'domain/types.ts', 'domain/entities.ts', 'domain/errors.ts',
+  'domain/types.ts', 'domain/entities.ts', 'domain/errors.ts', 'domain/planning.ts', 'domain/evidence.ts',
   'application/ports/repositories.ts', 'application/ports/unitOfWork.ts', 'application/ports/clock.ts',
   'infrastructure/memory/state.ts', 'infrastructure/memory/session.ts',
   'infrastructure/memory/repositories.ts', 'infrastructure/memory/unitOfWork.ts',
   'application/ports/identity.ts',
+  'application/ports/progress.ts', 'application/reports/progress.ts', 'http/progress.ts',
   'application/authorization/service.ts',
-  'application/queries/readFicha.ts', 'http/fichas.ts', 'composition/queries.ts', 'composition/sql.ts',
+  'application/queries/readFicha.ts', 'http/fichas.ts', 'composition/queries.ts', 'composition/sql.ts', 'composition/localDurableTrial.ts',
   'functions/fichas.ts', 'functions/index.ts',
   'application/reports/service.ts', 'http/reportes.ts', 'infrastructure/reportTools.ts',
   'infrastructure/identity/config.ts', 'infrastructure/identity/errors.ts',
@@ -24,7 +25,7 @@ const allowedSources = new Set([
   'infrastructure/sql/repositories/user.ts', 'infrastructure/sql/repositories/assignment.ts',
   'infrastructure/sql/repositories/audit.ts', 'infrastructure/sql/repositories/report.ts',
   'infrastructure/sql/repositories/idempotency.ts',
-  'infrastructure/sql/unitOfWork.ts',
+  'infrastructure/sql/unitOfWork.ts', 'infrastructure/sql/progressCodecs.ts', 'infrastructure/sql/repositories/progress.ts',
 ]);
 
 export async function checkBoundaries(root = apiRoot) {
@@ -74,7 +75,12 @@ export async function checkBoundaries(root = apiRoot) {
             const memory = relative.startsWith('infrastructure/memory/');
             const identity = relative.startsWith('infrastructure/identity/');
             const sql = relative.startsWith('infrastructure/sql/');
-            const composition = relative === 'composition/queries.ts';
+            const trialComposition = relative === 'composition/localDurableTrial.ts';
+            const composition = relative === 'composition/queries.ts' || trialComposition;
+            if (trialComposition && name === '@azure/functions'
+              && (!ts.isImportDeclaration(node) || !node.importClause?.isTypeOnly)) {
+              throw new Error('El ensayo local solo puede importar tipos HTTP, no registrar funciones.');
+            }
             if ((core || memory || identity || sql) && name === '@azure/functions') {
               throw new Error(`Dependencia de infraestructura prohibida en el núcleo: ${relative}`);
             }
@@ -82,6 +88,7 @@ export async function checkBoundaries(root = apiRoot) {
               if (!(relative === 'infrastructure/memory/unitOfWork.ts' && ['node:crypto', 'node:async_hooks'].includes(name))
                   && !(relative === 'infrastructure/reportTools.ts' && name === 'node:crypto')
                   && !(relative === 'composition/sql.ts' && name === 'node:module')
+                  && !(trialComposition && ['node:child_process', 'node:url'].includes(name))
                   && !(relative === 'infrastructure/sql/session.ts' && name === 'node:async_hooks')) {
                 throw new Error(`Módulo Node fuera del alcance: ${name}`);
               }
@@ -91,6 +98,11 @@ export async function checkBoundaries(root = apiRoot) {
               const target = path.relative(sourceRoot, path.resolve(directory, name)).split(path.sep).join('/').replace(/\.js$/, '.ts');
               if (!name.startsWith('.') || !allowedSources.has(target)) {
                 throw new Error(`Importación fuera del alcance L1-L6B: ${name}`);
+              }
+              if (trialComposition && !['application/authorization/service.ts', 'application/ports/identity.ts',
+                'application/ports/clock.ts', 'domain/errors.ts', 'infrastructure/identity/errors.ts',
+                'infrastructure/localOnly.ts'].includes(target)) {
+                throw new Error('El ensayo local solo admite su politica, puertos y barreras de seguridad.');
               }
               if (relative === 'composition/sql.ts' && !['application/ports/unitOfWork.ts',
                 'infrastructure/sql/odbc.ts', 'infrastructure/sql/session.ts', 'infrastructure/sql/unitOfWork.ts'].includes(target)) {
@@ -119,19 +131,21 @@ export async function checkBoundaries(root = apiRoot) {
                 throw new Error('Las consultas L5 solo se componen en su entrada HTTP y composición explícita.');
               }
               if (target.startsWith('application/reports/') && !composition
-                  && relative !== 'http/reportes.ts' && relative !== 'infrastructure/reportTools.ts') {
+                  && !(relative === 'application/reports/progress.ts' && target === 'application/reports/service.ts')
+                  && relative !== 'http/reportes.ts' && relative !== 'http/progress.ts' && relative !== 'infrastructure/reportTools.ts') {
                 throw new Error('Los reportes L6-B solo se usan mediante HTTP, composición y su adaptador técnico.');
               }
               if (target === 'infrastructure/reportTools.ts' && !composition) {
                 throw new Error('Las herramientas concretas de reportes solo se activan desde composición.');
               }
               const factoryReference = relative === 'composition/queries.ts' && target === 'composition/sql.ts';
+              const trialReference = relative === 'composition/queries.ts' && target === 'composition/localDurableTrial.ts';
               const entryReference = relative === 'functions/fichas.ts' && target === 'composition/queries.ts';
-              if (target.startsWith('composition/') && !entryReference && !factoryReference) {
+              if (target.startsWith('composition/') && !entryReference && !factoryReference && !trialReference) {
                 throw new Error('La composición L5 solo se activa desde su registro Functions.');
               }
               if (relative.startsWith('http/') && target.startsWith('infrastructure/')
-                  && !(['http/fichas.ts', 'http/reportes.ts'].includes(relative) && target === 'infrastructure/identity/errors.ts')) {
+                  && !(['http/fichas.ts', 'http/reportes.ts', 'http/progress.ts'].includes(relative) && target === 'infrastructure/identity/errors.ts')) {
                 throw new Error('El diagnóstico HTTP L1 no debe activar el adaptador L3; la identidad L4-A no debe conectarse a HTTP directamente.');
               }
               if (memory && !target.startsWith('domain/') && !target.startsWith('application/ports/') && !target.startsWith('infrastructure/memory/')) {
@@ -144,7 +158,7 @@ export async function checkBoundaries(root = apiRoot) {
                 throw new Error('El validador debe mantenerse separado de HTTP y persistencia.');
               }
               if (!identity && !core && !composition && target.startsWith('infrastructure/identity/')
-                  && !(['http/fichas.ts', 'http/reportes.ts'].includes(relative) && target === 'infrastructure/identity/errors.ts')) {
+                  && !(['http/fichas.ts', 'http/reportes.ts', 'http/progress.ts'].includes(relative) && target === 'infrastructure/identity/errors.ts')) {
                 throw new Error('La identidad L4-A no debe conectarse a HTTP ni a persistencia.');
               }
             }

@@ -1,14 +1,22 @@
-param([switch]$CheckOnly,[string]$ToolsDirectory)
+param([switch]$CheckOnly,[string]$ToolsDirectory,[switch]$RequireDurableTrial)
 $ErrorActionPreference='Stop'
 $stage='WINDOWS_IDENTITY'
 $api=Split-Path -Parent $PSScriptRoot
 $tools=$null
 $savedEnvironment=@{}
-foreach($key in @('PATH','USERPROFILE','APPDATA','LOCALAPPDATA','TEMP','TMP')){$savedEnvironment[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
+foreach($key in @('PATH','USERPROFILE','APPDATA','LOCALAPPDATA','TEMP','TMP','PAI_HOST_INTERACTIVE')){$savedEnvironment[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
 try {
   $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
   $principal=[Security.Principal.WindowsPrincipal]::new($identity)
   if($identity.Name -ine "$env:COMPUTERNAME\PAIPOC_Test" -or $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){throw 'REJECTED'}
+  try{$Host.UI.RawUI.WindowTitle='PAI - HOST PAIPOC_Test (Core Tools)'}catch{}
+  if($RequireDurableTrial){
+    $stage='TEMPORARY_CONFIGURATION'
+    $hasIdentity=-not [string]::IsNullOrWhiteSpace($env:PAI_API_IDENTITY_CONFIG)
+    $hasTrial=-not [string]::IsNullOrWhiteSpace($env:PAI_L8E4_TRIAL)
+    [pscustomobject]@{stage=$stage;identityConfigurationPresent=$hasIdentity;trialConfigurationPresent=$hasTrial;writes=0}|ConvertTo-Json -Compress
+    if(-not $hasIdentity -or -not $hasTrial){throw 'REJECTED'}
+  }
   $stage='RESTRICTED_PROFILE'
   $profileRecord=Get-ItemProperty -LiteralPath ('Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$identity.User.Value)
   $ownProfile=[Environment]::ExpandEnvironmentVariables($profileRecord.ProfileImagePath)
@@ -70,6 +78,7 @@ try {
   $previousMode=$env:PAI_API_PERSISTENCE
   try{
     $env:PAI_API_PERSISTENCE='sql-local'
+    $env:PAI_HOST_INTERACTIVE='1'
     & $node (Join-Path $PSScriptRoot 'start-local.mjs')
   }finally{
     if($null -eq $previousMode){Remove-Item Env:PAI_API_PERSISTENCE -ErrorAction SilentlyContinue}

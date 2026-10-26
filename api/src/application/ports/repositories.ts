@@ -18,6 +18,8 @@ export interface UserRepository {
 
 export interface AssignmentRepository {
   findById(id: AssignmentId): Promise<AccessAssignment | null>;
+  /** Discovery only; application authorization still evaluates every assignment/ficha. */
+  listByUser(userId: UserId): Promise<readonly AccessAssignment[]>;
   /** Devuelve también deshabilitadas/fuera de ventana: la política futura decide su vigencia. */
   listByUserAndFicha(userId: UserId, fichaId: FichaId): Promise<readonly AccessAssignment[]>;
   setEnabled(id: AssignmentId, expectedVersion: Version, enabled: boolean): Promise<AccessAssignment>;

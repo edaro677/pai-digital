@@ -242,3 +242,14 @@ test('Invalid input is rejected before SQL and never interpolated', async () => 
     assert.equal(f.statements.length, 0);
   }
 });
+
+test('Assignment discovery: user scoped, typed, ordered, no filtering of validity or enabled state',async()=>{
+  const f=fake(()=>[assignment(),assignment({Id:'assignment-B',Enabled:true})]);
+  const rows=await f.run(SqlAssignmentRepository,r=>r.listByUser('user-A'));
+  assert.equal(rows.length,2);assert.equal(rows[0].enabled,false);
+  assert.match(f.statements[0].text,/WHERE UserId = @userId ORDER BY InsertionOrder ASC;/);
+  assert.deepEqual(f.statements[0].parameters,[{name:'userId',type:'varchar',length:64,value:'user-A'}]);
+  assert.equal(await fake().run(SqlAssignmentRepository,async r=>(await r.listByUser('user-A')).length),0);
+  let held;await f.run(SqlAssignmentRepository,async r=>{held=r;});
+  await assert.rejects(held.listByUser('user-A'),code('SQL_SESSION_CLOSED'));
+});

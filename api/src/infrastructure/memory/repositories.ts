@@ -2,7 +2,9 @@ import type { TransactionContext } from '../../application/ports/unitOfWork.js';
 import type { ActivityRepository, AssignmentRepository, AuditRepository, FichaRepository, IdempotencyRepository, ReportRepository, UserRepository } from '../../application/ports/repositories.js';
 import type { CompletedIdempotency, Report, ReservedIdempotency } from '../../domain/entities.js';
 import { DuplicateError, IncompatibleStateError } from '../../domain/errors.js';
-import { copy, requireRow, tuple, validateAudit, validateReport } from './state.js';
+import { copy, requireRow, tuple, validateAudit, validateReport, validateSubmission } from './state.js';
+import { validateDeclaredEvidence } from '../../domain/evidence.js';
+import type { ProgressRepository } from '../../application/ports/progress.js';
 import { entityId, idempotencyKey, requestFingerprint, utcInstant, version } from '../../domain/types.js';
 import type { MemorySession } from './session.js';
 
@@ -23,6 +25,9 @@ export function createTransactionContext(session: MemorySession): TransactionCon
     }),
   };
   const assignments: AssignmentRepository = {
+    listByUser: userId => session.invoke(() => copy(
+      [...state.assignments.values()].filter(row => row.userId === userId),
+    )),
     findById: (id) => session.invoke(() => copy(state.assignments.get(id) ?? null)),
     listByUserAndFicha: (userId, fichaId) => session.invoke(() => copy(
       [...state.assignments.values()].filter((row) => row.userId === userId && row.fichaId === fichaId),
@@ -118,7 +123,10 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       session.checkVersion(current.version, expected);
       if (current.state !== 'poc:reserved') throw new IncompatibleStateError();
       requireRow(state.reports, outcome.report.id);
-      requireRow(state.audit, outcome.auditEventId);
+      const event=requireRow(state.audit, outcome.auditEventId);
+      if(outcome.progress && (event.actorId!==current.scope.actorId || !('progress' in event.change)
+        || JSON.stringify(event.change.progress)!==JSON.stringify(outcome.progress)
+        || JSON.stringify(event.change.after)!==JSON.stringify(outcome.report)))throw new IncompatibleStateError();
       const result: CompletedIdempotency = {
         ...current, state: 'poc:completed', outcome: copy(outcome), completedAt, version: session.nextVersion(),
       };
@@ -126,9 +134,33 @@ export function createTransactionContext(session: MemorySession): TransactionCon
       return copy(result);
     }),
   };
+  const progress: ProgressRepository = {
+    listEvidence: reportId => session.invoke(() => copy([...state.evidence.values()].filter(row => row.reportId === reportId))),
+    findSubmission: reportId => session.invoke(() => copy(state.submissions.get(reportId) ?? null)),
+    addEvidence: (report, evidence) => session.invoke(() => {
+      validateDeclaredEvidence(evidence);
+      const current = requireRow(state.reports, report.id); session.checkVersion(current.version,report.version);
+      if(state.submissions.has(report.id)) throw new IncompatibleStateError();
+      if(evidence.reportId !== report.id || evidence.target.activityId !== report.activityId) throw new IncompatibleStateError();
+      if(state.evidence.has(evidence.id)) throw new DuplicateError();
+      state.evidence.set(evidence.id,copy(evidence));
+    }),
+    submit: submission => session.invoke(() => {
+      validateSubmission(submission);
+      const current=requireRow(state.reports,submission.report.id);session.checkVersion(current.version,submission.report.version);
+      if(state.submissions.has(current.id)) throw new IncompatibleStateError();
+      const declared=[...state.evidence.values()].filter(row=>row.reportId===current.id);
+      if(declared.length!==submission.evidence.length || new Set(submission.evidence.map(row=>row.declaration.id)).size!==declared.length
+        || submission.evidence.some(item=>JSON.stringify(state.evidence.get(item.declaration.id))!==JSON.stringify(item.declaration)))throw new IncompatibleStateError();
+      for(const field of ['id','activityId','period','quantity','narrative','state','createdBy','createdAt','updatedBy','updatedAt','version'] as const){
+        if(current[field]!==submission.report[field])throw new IncompatibleStateError();
+      }
+      state.submissions.set(current.id,copy(submission));
+    }),
+  };
   return Object.freeze({
     users: Object.freeze(users), assignments: Object.freeze(assignments), fichas: Object.freeze(fichas),
     activities: Object.freeze(activities), reports: Object.freeze(reports),
-    audit: Object.freeze(audit), idempotency: Object.freeze(idempotency),
+    audit: Object.freeze(audit), idempotency: Object.freeze(idempotency), progress: Object.freeze(progress),
   });
 }

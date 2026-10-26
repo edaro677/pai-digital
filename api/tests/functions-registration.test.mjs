@@ -33,6 +33,12 @@ test('registro Functions conserva L1-L5 y agrega únicamente POST, GET y PATCH d
     ['pocReportCreate', "'poc/actividades/{activityId}/reportes'", 'handlers.createReport', "['POST']"],
     ['pocReportRead', "'poc/reportes/{reportId}'", 'handlers.getReport', "['GET']"],
     ['pocReportUpdate', "'poc/reportes/{reportId}'", 'handlers.updateReport', "['PATCH']"],
+    ['pocFichas', "'poc/fichas'", 'handlers.fichas', "['GET']"],
+    ['pocFichaReportes', "'poc/fichas/{fichaId}/reportes'", 'handlers.reportes', "['GET']"],
+    ['pocEvidenceDeclare', "'poc/reportes/{reportId}/evidencias'", 'handlers.associateEvidence', "['POST']"],
+    ['pocEvidenceList', "'poc/reportes/{reportId}/evidencias'", 'handlers.listEvidence', "['GET']"],
+    ['pocReportSubmit', "'poc/reportes/{reportId}/enviar'", 'handlers.submitReport', "['POST']"],
+    ['pocReportSubmission', "'poc/reportes/{reportId}/envio'", 'handlers.getSubmission', "['GET']"],
   ]);
   const start = await readFile(new URL('scripts/start-local.mjs', root), 'utf8');
   assert.match(start, /--address 127\.0\.0\.1 --port 7071 --functions pocHealth pocFicha pocFichaActividades pocReportCreate pocReportRead pocReportUpdate/);

@@ -116,3 +116,32 @@ for(const mode of [undefined,'memory','sql-local'])test(`local ${String(mode)} a
   assert.equal((await handlers.ficha(request)).status,401);assert.equal(calls,0);
   assert.equal(health().status,200);assert.equal(nativeLoads,0);
 });
+
+test('local composition failure emits only a fixed stage and presence flags, never private configuration',()=>{
+  const saved=process.env.PAI_POC_LOCAL_ONLY,warning=console.warn;const logs=[];
+  process.env.PAI_POC_LOCAL_ONLY='1';console.warn=value=>logs.push(JSON.parse(value));
+  try{
+    createLocalQueryHandlers(undefined,'sql-local',undefined,undefined);
+    assert.deepEqual(logs,[{probe:'LOCAL_COMPOSITION_FAILURE',stage:'IDENTITY_CONFIGURATION',identityConfigurationPresent:false,trialConfigurationPresent:false,sqlLocalSelected:true}]);
+    logs.length=0;
+    createLocalQueryHandlers('private-invalid-token-and-identity','sql-local');
+    assert.equal(logs[0].stage,'IDENTITY_CONFIGURATION');
+    assert.doesNotMatch(JSON.stringify(logs),/private-invalid|stack|password|message/);
+  }finally{console.warn=warning;if(saved===undefined)delete process.env.PAI_POC_LOCAL_ONLY;else process.env.PAI_POC_LOCAL_ONLY=saved;}
+});
+
+test('diagnostic headers require local sql-local AND the explicit probe; error contract stays unchanged',()=>{
+  const saved=process.env.PAI_POC_LOCAL_ONLY,warn=console.warn;console.warn=()=>{};
+  const request=new HttpRequest({method:'GET',url:'http://127.0.0.1/api/poc/fichas/x',headers:{'X-PAI-L8E4-Probe':'1'}});
+  try{
+    process.env.PAI_POC_LOCAL_ONLY='1';
+    const h=createLocalQueryHandlers(undefined,'sql-local');const r=h.ficha(request);
+    assert.equal(r.status,500);assert.equal(r.jsonBody.error.code,'INTERNAL_ERROR');
+    assert.equal(r.headers['X-PAI-L8E4-Configuration-Stage'],'IDENTITY_CONFIGURATION');
+    assert.equal(r.headers['X-PAI-L8E4-Identity-Present'],'0');
+    assert.equal(h.ficha().headers['X-PAI-L8E4-Configuration-Stage'],undefined);
+    assert.equal(createLocalQueryHandlers(undefined,'memory').ficha(request).headers['X-PAI-L8E4-Configuration-Stage'],undefined);
+    delete process.env.PAI_POC_LOCAL_ONLY;
+    assert.equal(h.ficha(request).headers['X-PAI-L8E4-Configuration-Stage'],undefined);
+  }finally{console.warn=warn;if(saved===undefined)delete process.env.PAI_POC_LOCAL_ONLY;else process.env.PAI_POC_LOCAL_ONLY=saved;}
+});

@@ -61,6 +61,7 @@ void tx.runAtomic(async () => undefined);
 
 const result: Promise<Report> = uow.runAtomic(async (context) => {
   void context.users.findById(userId);
+  void context.assignments.listByUser(userId);
   void context.assignments.listByUserAndFicha(userId, fichaId);
   void context.audit.findById(event.id);
   void context.idempotency.findByScope(idempotency.scope);

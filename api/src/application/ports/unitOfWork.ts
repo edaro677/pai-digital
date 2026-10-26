@@ -2,6 +2,7 @@ import type {
   ActivityRepository, AssignmentRepository, AuditRepository, FichaRepository,
   IdempotencyRepository, ReportRepository, UserRepository,
 } from './repositories.js';
+import type { ProgressRepository } from './progress.js';
 
 /** Repositorios ligados al mismo contexto; no retenerlos después del callback. */
 export interface TransactionContext {
@@ -12,6 +13,7 @@ export interface TransactionContext {
   readonly reports: ReportRepository;
   readonly audit: AuditRepository;
   readonly idempotency: IdempotencyRepository;
+  readonly progress?: ProgressRepository;
 }
 
 /**

@@ -5,7 +5,7 @@ type Branded<Value, Kind extends string> = Value & { readonly [brand]: Kind };
 
 export type IdentifierKind =
   | 'user' | 'tenant' | 'directory-object' | 'dependency' | 'ficha'
-  | 'assignment' | 'activity' | 'report' | 'audit-event' | 'idempotency-record';
+  | 'assignment' | 'activity' | 'report' | 'audit-event' | 'idempotency-record' | 'evidence' | 'goal';
 export type EntityId<Kind extends IdentifierKind> = Branded<string, `id:${Kind}`>;
 export type UserId = EntityId<'user'>;
 export type TenantId = EntityId<'tenant'>;
@@ -30,7 +30,7 @@ export type RequestFingerprint = Branded<string, 'request-fingerprint'>;
 // Exclusivos del laboratorio: no son roles, cierres ni transiciones institucionales.
 export type ReportState = 'poc-draft' | 'poc-blocked';
 export type Capability = 'poc:read' | 'poc:edit-report';
-export type IdempotentOperation = 'poc:create-report' | 'poc:update-report';
+export type IdempotentOperation = 'poc:create-report' | 'poc:update-report' | 'poc:associate-evidence' | 'poc:submit-report';
 
 function token<Kind extends string>(value: string): Branded<string, Kind> {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || /[\u0000-\u001f\u007f]/.test(value)) {

@@ -117,6 +117,7 @@ export class ReportService {
         return receipt(original);
       }
       if (before.state !== 'poc-draft') throw new IncompatibleStateError();
+      if (context.progress && await context.progress.findSubmission(before.id)) throw new IncompatibleStateError();
       if (before.version !== command.expectedVersion) throw new VersionConflictError();
       const at = this.clock.now();
       const reserved = await context.idempotency.reserve({ id: this.tools.id('idempotency-record'), scope,

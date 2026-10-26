@@ -167,3 +167,14 @@ test('SQL L8-C1 no puede importar configuracion o validacion Entra', () => scena
   await writeFile(path.join(directory, 'src/infrastructure/sql/session.ts'), 'import "../identity/config.js";');
   await assert.rejects(checkBoundaries(directory), /SQL L8-C1/);
 }));
+
+test('HTTP cannot import the local trial composition', () => scenario(async directory => {
+  await writeFile(path.join(directory,'src','http','health.ts'),'import "../composition/localDurableTrial.js";');
+  await assert.rejects(checkBoundaries(directory),/composición/);
+}));
+test('local trial cannot access SQL or register Azure Functions', () => scenario(async directory => {
+  await writeFile(path.join(directory,'src','composition','localDurableTrial.ts'),'import "../infrastructure/sql/odbc.js";');
+  await assert.rejects(checkBoundaries(directory),/ensayo local/);
+  await writeFile(path.join(directory,'src','composition','localDurableTrial.ts'),'import { app } from "@azure/functions";');
+  await assert.rejects(checkBoundaries(directory),/solo puede importar tipos HTTP/);
+}));

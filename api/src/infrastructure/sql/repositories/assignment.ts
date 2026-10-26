@@ -16,6 +16,13 @@ function decode(row: Readonly<Record<string, unknown>>): AccessAssignment {
 export class SqlAssignmentRepository implements AssignmentRepository {
   constructor(private readonly session: SqlSession) {}
 
+  async listByUser(userId: UserId): Promise<readonly AccessAssignment[]> {
+    return (await queryRows(this.session, {
+      text: `${select} WHERE UserId = @userId ORDER BY InsertionOrder ASC;`,
+      parameters: [{ name: 'userId', type: 'varchar', length: 64, value: identifier('user').encode(userId) }],
+    })).map(decode);
+  }
+
   async findById(id: AssignmentId): Promise<AccessAssignment | null> {
     return single(await queryRows(this.session, { text: `${select} WHERE Id = @id;`, parameters: [
       { name: 'id', type: 'varchar', length: 64, value: identifier('assignment').encode(id) },

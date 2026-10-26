@@ -10,6 +10,7 @@ import { SqlFichaRepository } from './repositories/ficha.js';
 import { SqlActivityRepository } from './repositories/activity.js';
 import { SqlReportRepository } from './repositories/report.js';
 import { SqlAuditRepository } from './repositories/audit.js';
+import { SqlProgressRepository, requireProgressSchema } from './repositories/progress.js';
 import { SqlIdempotencyRepository } from './repositories/idempotency.js';
 
 /** Tracks WHOLE repository calls, including validation/mapping outside execute(). */
@@ -55,13 +56,20 @@ class RepositoryScope {
   }
 }
 
-function context(session: SqlSession, scope: RepositoryScope): TransactionContext {
+function context(session: SqlSession, scope: RepositoryScope, enableProgress: boolean): TransactionContext {
   const users = new SqlUserRepository(session), assignments = new SqlAssignmentRepository(session);
   const fichas = new SqlFichaRepository(session), activities = new SqlActivityRepository(session);
-  const reports = new SqlReportRepository(session), audit = new SqlAuditRepository(session);
-  const idempotency = new SqlIdempotencyRepository(session);
+  const reports = new SqlReportRepository(session), audit = new SqlAuditRepository(session, enableProgress);
+  const idempotency = new SqlIdempotencyRepository(session, enableProgress);
+  const progress = new SqlProgressRepository(session);
   // Only the port methods escape. No session, raw repository or lifecycle controls.
   return Object.freeze({
+    ...(enableProgress ? { progress: Object.freeze({
+      listEvidence: (id) => scope.invoke(() => progress.listEvidence(id)),
+      findSubmission: (id) => scope.invoke(() => progress.findSubmission(id)),
+      addEvidence: (report, evidence) => scope.invoke(() => progress.addEvidence(report, evidence)),
+      submit: (submission) => scope.invoke(() => progress.submit(submission)),
+    } satisfies NonNullable<TransactionContext['progress']>) } : {}),
     users: Object.freeze({
       findById: (id) => scope.invoke(() => users.findById(id)),
       findByIdentity: (tenant, object) => scope.invoke(() => users.findByIdentity(tenant, object)),
@@ -69,6 +77,7 @@ function context(session: SqlSession, scope: RepositoryScope): TransactionContex
     } satisfies TransactionContext['users']),
     assignments: Object.freeze({
       findById: (id) => scope.invoke(() => assignments.findById(id)),
+      listByUser: (user) => scope.invoke(() => assignments.listByUser(user)),
       listByUserAndFicha: (user, ficha) => scope.invoke(() => assignments.listByUserAndFicha(user, ficha)),
       setEnabled: (id, expected, enabled) => scope.invoke(() => assignments.setEnabled(id, expected, enabled)),
     } satisfies TransactionContext['assignments']),
@@ -100,13 +109,20 @@ function context(session: SqlSession, scope: RepositoryScope): TransactionContex
 
 /** Implements the existing port; connection/transaction ownership stays in runner. */
 export class SqlUnitOfWork implements UnitOfWork {
-  constructor(private readonly runner: SqlSessionRunner) {}
+  private readonly enableProgress: boolean;
+  constructor(private readonly runner: SqlSessionRunner, options: Readonly<{ progress?: boolean }> = {}) {
+    // Trusted composition opt-in only. Existing HTTP composition never passes this option.
+    this.enableProgress = options.progress === true;
+  }
 
   runAtomic<Result>(work: (context: TransactionContext) => Promise<Result>): Promise<Result> {
     return this.runner.run('commit', async session => {
       const scope = new RepositoryScope();
       let result!: Result, primary: SqlSessionFailure | undefined;
-      try { result = await work(context(session, scope)); }
+      try {
+        if (this.enableProgress) await requireProgressSchema(session);
+        result = await work(context(session, scope, this.enableProgress));
+      }
       catch (error) { primary = sanitizeWorkError(error); }
       finally {
         const repositoryFailure = await scope.finish();

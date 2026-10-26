@@ -4,6 +4,7 @@ import type {
   IdempotentOperation, PeriodKey, ReportId, ReportState, RequestFingerprint,
   TenantId, UserId, UtcInstant, Version,
 } from './types.js';
+import type { ProgressOutcome } from './evidence.js';
 
 /** Todas las entidades describen registros sintéticos, no un esquema institucional. */
 export interface InstitutionalUser {
@@ -62,6 +63,7 @@ export interface Report {
 }
 
 export type AuditChange =
+  | { readonly action: 'poc:evidence-declared' | 'poc:report-submitted'; readonly before: Report; readonly after: Report; readonly progress: ProgressOutcome }
   | { readonly action: 'poc:report-created'; readonly before: null; readonly after: Report }
   | { readonly action: 'poc:report-updated'; readonly before: Report; readonly after: Report }
   | { readonly action: 'poc:user-enabled-changed'; readonly before: InstitutionalUser; readonly after: InstitutionalUser }
@@ -84,6 +86,7 @@ export interface IdempotencyScope {
 export interface ReportOperationOutcome {
   readonly report: Report;
   readonly auditEventId: AuditEventId;
+  readonly progress?: ProgressOutcome;
 }
 
 interface IdempotencyBase {

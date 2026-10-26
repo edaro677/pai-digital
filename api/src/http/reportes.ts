@@ -9,7 +9,7 @@ import { AuthenticationError } from '../infrastructure/identity/errors.js';
 import { queryResponse, unavailableQuery } from './fichas.js';
 
 const maxBodyBytes = 16384;
-class RequestError extends Error {
+export class RequestError extends Error {
   constructor(readonly status: 400 | 413 | 415) { super('Solicitud no válida.'); }
 }
 function validId(id: unknown): id is string {
@@ -17,7 +17,7 @@ function validId(id: unknown): id is string {
     && /^[A-Za-z0-9]/.test(id) && !/[^A-Za-z0-9._-]/.test(id);
 }
 
-async function readJson(request: HttpRequest): Promise<Record<string, unknown>> {
+export async function readJson(request: HttpRequest): Promise<Record<string, unknown>> {
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')
       || !['identity', null].includes(request.headers.get('content-encoding'))) throw new RequestError(415);
   const length = request.headers.get('content-length');

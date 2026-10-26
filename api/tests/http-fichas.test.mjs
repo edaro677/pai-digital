@@ -260,3 +260,87 @@ test('composición configurada no incorpora fixtures ni acepta JWT sintético me
   const jwt = await s.token(); // Sin DI, claves sintéticas no son confiables; fetch global bloqueado.
   assertError(await handlers.ficha(s.request(jwt)), 401, 'UNAUTHENTICATED', jwt);
 });
+
+// New collection routes reuse the same JWT validator, authorization service and UoW.
+function collectionRequest(jwt, path, fichaId) {
+  return new HttpRequest({method:'GET',url:'http://127.0.0.1:7071/api/poc/'+path,
+    params: fichaId ? {fichaId} : {},headers:jwt?{Authorization:`Bearer ${jwt}`}:{}});
+}
+test('fichas candidates: ordered, deduplicated, unauthorized and missing omitted, DTO isolated',async()=>{
+  const s=setup();const jwt=await s.token();
+  const path=`fichas?id=${s.f.fichaBeta}&id=${s.f.fichaAlpha}&id=${s.f.fichaAlpha}&id=missing`;
+  const r=await s.handlers.fichas(collectionRequest(jwt,path));
+  assert.equal(r.status,200);assert.deepEqual(r.jsonBody.data,[s.f.seed.fichas[0]]);
+  r.jsonBody.data[0].cycleLabel='changed';
+  assert.equal((await s.handlers.fichas(collectionRequest(jwt,path))).jsonBody.data[0].cycleLabel,'synthetic-cycle');
+});
+for(const path of ['fichas?id=','fichas?id=bad%20id','fichas?other=x','fichas?'+Array(51).fill('id=x').join('&')]){
+  test('fichas rejects invalid/broad selection: '+path.slice(0,40),async()=>{
+    const s=setup();assertError(await s.handlers.fichas(collectionRequest(await s.token(),path)),400,'INVALID_REQUEST');
+  });
+}
+for(const resource of ['fichas','reportes'])test('collection '+resource+' authenticates before parameter checks',async()=>{
+  const s=setup();assertError(await s.handlers[resource](collectionRequest(null,'fichas')),401,'UNAUTHENTICATED');
+  assertError(await s.handlers[resource](collectionRequest('invalid','fichas')),401,'UNAUTHENTICATED');
+});
+test('default denial policy still filters all candidate fichas and denies reports',async()=>{
+  const s=setup(()=>{},{isApplicable:()=>false});const jwt=await s.token();
+  assert.deepEqual((await s.handlers.fichas(collectionRequest(jwt,`fichas?id=${s.f.fichaAlpha}`))).jsonBody.data,[]);
+  assertError(await s.handlers.reportes(collectionRequest(jwt,'fichas/x/reportes?period=Q1',s.f.fichaAlpha)),404,'NOT_FOUND');
+});
+test('reports: one authorized atomic read in activity order, period filter and public projection',async()=>{
+  const s=setup();
+  await s.work.runAtomic(async c=>{
+    await c.reports.create(reportInput(s.f,{id:entityId('report','second'),activityId:s.f.seed.activities[1].id}));
+    await c.reports.create(reportInput(s.f));
+    await c.reports.create(reportInput(s.f,{id:entityId('report','other-period'),period:'other'}));
+  });
+  const jwt=await s.token();const path='fichas/x/reportes?period=synthetic-period';
+  const r=await s.handlers.reportes(collectionRequest(jwt,path,s.f.fichaAlpha));
+  assert.equal(r.status,200);assert.deepEqual(r.jsonBody.data.map(x=>x.id),['synthetic-report','second']);
+  for(const row of r.jsonBody.data){assert.equal(row.quantity,'1.000');assert.equal(row.createdAt,s.f.now);
+    assert.equal('createdBy' in row,false);assert.equal('updatedBy' in row,false);}
+  r.jsonBody.data[0].narrative='mutated';
+  assert.equal((await s.handlers.reportes(collectionRequest(jwt,path,s.f.fichaAlpha))).jsonBody.data[0].narrative,'Narración sintética');
+});
+test('reports empty is 200; unauthorized/missing fichas stay indistinguishable',async()=>{
+  const s=setup();const jwt=await s.token();
+  assert.deepEqual((await s.handlers.reportes(collectionRequest(jwt,'fichas/x/reportes?period=Q1',s.f.fichaAlpha))).jsonBody.data,[]);
+  for(const id of [s.f.fichaBeta,'missing'])assertError(await s.handlers.reportes(collectionRequest(jwt,'fichas/x/reportes?period=Q1',id)),404,'NOT_FOUND');
+});
+for(const query of ['', '?period=', '?period=x&period=y','?period=x&other=y','?period='+ 'x'.repeat(129),'?period=%00'])test('reports reject invalid period query '+query.slice(0,30),async()=>{
+  const s=setup();assertError(await s.handlers.reportes(collectionRequest(await s.token(),'fichas/x/reportes'+query,s.f.fichaAlpha)),400,'INVALID_REQUEST');
+});
+test('collection requests reject method and body, and infrastructure errors stay sanitized',async()=>{
+  const s=setup();const jwt=await s.token();
+  for(const resource of ['fichas','reportes']){
+    const request=collectionRequest(jwt,'fichas?id=x&period=Q1',s.f.fichaAlpha);
+    const broken={runAtomic:async()=>{throw new Error('synthetic-sensitive password stack');}};
+    const h=createFichaHandlers(s.h.validator,new ReadFichaQueries(broken,s.authorization));
+    const good=collectionRequest(jwt,resource==='fichas'?`fichas?id=${s.f.fichaAlpha}`:'fichas/x/reportes?period=Q1',s.f.fichaAlpha);
+    assertError(await h[resource](good),500,'INTERNAL_ERROR',jwt);
+    assertError(await s.handlers[resource](new HttpRequest({method:'POST',url:request.url,headers:{Authorization:`Bearer ${jwt}`}})),400,'INVALID_REQUEST');
+  }
+});
+test('reports fail closed for a row from another activity/period',async()=>{
+  const s=setup();const broken={runAtomic:cb=>s.work.runAtomic(c=>cb({...c,reports:{...c.reports,
+    findByActivityAndPeriod:async()=>reportInput(s.f,{activityId:s.f.seed.activities[2].id,period:'wrong'})}}))};
+  const h=createFichaHandlers(s.h.validator,new ReadFichaQueries(broken,s.authorization));
+  assertError(await h.reportes(collectionRequest(await s.token(),'fichas/x/reportes?period=Q1',s.f.fichaAlpha)),500,'INTERNAL_ERROR');
+});
+
+test('GET fichas discovers only the authenticated users authorized assignments',async()=>{
+  const s=setup();const jwt=await s.token();
+  const r=await s.handlers.fichas(collectionRequest(jwt,'fichas'));
+  assert.equal(r.status,200);assert.deepEqual(r.jsonBody.data,[s.f.seed.fichas[0]]);
+  const beta=await s.handlers.fichas(collectionRequest(await s.token(1),'fichas'));
+  assert.deepEqual(beta.jsonBody.data,[s.f.seed.fichas[1]]);
+});
+test('discovery disabled or unknown user returns empty; inconsistent assignment fails closed',async()=>{
+  const s=setup(f=>{f.seed.users[0].enabled=false;});
+  assert.deepEqual((await s.handlers.fichas(collectionRequest(await s.token(),'fichas'))).jsonBody.data,[]);
+  const good=setup();const broken={runAtomic:cb=>good.work.runAtomic(c=>cb({...c,assignments:{...c.assignments,
+    listByUser:async()=>good.f.seed.assignments.filter(a=>a.userId===good.f.beta)}}))};
+  const h=createFichaHandlers(good.h.validator,new ReadFichaQueries(broken,good.authorization));
+  assertError(await h.fichas(collectionRequest(await good.token(),'fichas')),500,'INTERNAL_ERROR');
+});

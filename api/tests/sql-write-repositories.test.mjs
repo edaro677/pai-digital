@@ -92,10 +92,10 @@ function setup(seed = {}, options = {}) {
     })) };
 }
 for (const [name, Repo, file] of [['Audit', SqlAuditRepository, 'audit'], ['Report', SqlReportRepository, 'report'], ['Idempotency', SqlIdempotencyRepository, 'idempotency']]) {
-  test(`${name}: compiled contract, session-only constructor and no independent transaction`, () => {
+  test(`${name}: compiled contract, session-only transport dependency and no independent transaction`, () => {
     const source = readFileSync(new URL(`../src/infrastructure/sql/repositories/${file}.ts`, import.meta.url), 'utf8');
     assert.ok(source.includes(`implements ${name}Repository`));
-    assert.match(source, /constructor\(private readonly session: SqlSession\)/);
+    assert.match(source, /constructor\(private readonly session: SqlSession(?:, private readonly enableProgress = false)?\)/);
     assert.doesNotMatch(source, /ConnectionPool|BEGIN TRANSACTION|COMMIT|ROLLBACK|@azure\/functions/);
     let called = false; new Repo({ execute() { called = true; } }); assert.equal(called, false);
   });
